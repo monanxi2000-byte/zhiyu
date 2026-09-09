@@ -20,6 +20,7 @@ const state = {
   fcIndex: 0,
   currentResult: null,
   currentTopic: '',
+  currentAudience: 'all',
 };
 
 /* ---------- 工具 ---------- */
@@ -155,10 +156,34 @@ function bindEvents() {
 
   $('#fcPrev').addEventListener('click', () => flipCard(-1));
   $('#fcNext').addEventListener('click', () => flipCard(1));
+  // 身份定位过滤
+  $$('.audience-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      $$('.audience-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.currentAudience = btn.dataset.audience;
+      if (state.currentResult) renderHot(state.currentResult.materials.hotTopics, state.currentResult.meta.live);
+    });
+  });
+
+  // 关于我们 Tab 切换
+  $$('.about-tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      $$('.about-tab-btn').forEach((b) => b.classList.remove('active'));
+      $$('.about-tab-panel').forEach((p) => p.classList.remove('active'));
+      btn.classList.add('active');
+      const panel = document.querySelector(`.about-tab-panel[data-panel="${btn.dataset.tab}"]`);
+      if (panel) panel.classList.add('active');
+    });
+  });
   $('#flashcard').addEventListener('click', () => $('#flashcard').classList.toggle('flipped'));
   $('#modalClose').addEventListener('click', closeReader);
+  $('#agentModalClose').addEventListener('click', closeAgentModal);
   $('#readerModal').addEventListener('click', (e) => {
     if (e.target.id === 'readerModal') closeReader();
+  });
+  $('#agentModal').addEventListener('click', (e) => {
+    if (e.target.id === 'agentModal') closeAgentModal();
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeReader();
@@ -223,6 +248,8 @@ function resetPipeline() {
     node.className = 'pipe-agent';
     node.querySelector('.pipe-state').textContent = '待命';
     node.querySelector('.pipe-msg').textContent = '等待启动';
+    const btn = node.querySelector('.pipe-detail-btn');
+    if (btn) btn.hidden = true;
   });
 }
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -273,6 +300,11 @@ function finishLoading() {
 function onResult(result) {
   finishLoading();
   $('#pipelineTitle').textContent = '引路完成 ✨';
+  // 显示三个 Agent 的详情按钮
+  $$('.pipe-detail-btn').forEach((btn) => {
+    btn.hidden = false;
+    btn.onclick = () => openAgentDetail(btn.dataset.agent);
+  });
   renderMeta(result);
   renderTimePlan(result);
   renderTimeline(result.studyPlan.stages);
@@ -520,11 +552,20 @@ function flipCard(step) {
   showCard();
 }
 
-/* ---------- 热点（可点击引路） ---------- */
+/* ---------- 热点（可点击引路 + 身份定位过滤） ---------- */
 function renderHot(hotList, live) {
   const box = $('#hotList');
   box.innerHTML = '';
-  (hotList || []).forEach((h) => {
+  const audience = state.currentAudience;
+  const filtered = (hotList || []).filter((h) => {
+    if (audience === 'all') return true;
+    return h.audience === audience || h.audience === 'both' || !h.audience;
+  });
+  if (!filtered.length) {
+    box.appendChild(el('div', 'hot-empty', '该身份下暂无相关热点，切换其他身份看看～'));
+    return;
+  }
+  filtered.forEach((h) => {
     const item = el('div', 'hot-item reveal');
     item.appendChild(el('div', 'hot-rank', String(h.rank)));
     const main = el('div', '');
@@ -533,6 +574,9 @@ function renderHot(hotList, live) {
     if (h.heat) meta.appendChild(el('span', '', esc(h.heat)));
     if (h.type) meta.appendChild(el('span', 'hot-tag', esc(h.type)));
     if (h.tag) meta.appendChild(el('span', 'hot-tag', esc(h.tag)));
+    if (h.audience && h.audience !== 'both') {
+      meta.appendChild(el('span', `hot-tag hot-audience ${h.audience}`, h.audience === 'student' ? '学生向' : '职场向'));
+    }
     main.appendChild(meta);
     item.appendChild(main);
     item.appendChild(el('span', 'hot-go', '引路 →'));
@@ -570,6 +614,133 @@ async function openReader(workId, title) {
 
 function closeReader() {
   $('#readerModal').hidden = true;
+  document.body.style.overflow = '';
+}
+
+/* ---------- Agent 详情弹窗 ---------- */
+function openAgentDetail(agentId) {
+  const r = state.currentResult;
+  if (!r) return;
+  const titles = { collector: '🔍 资料收集官 · 详细产出', comparator: '⚖️ 观点对照官 · 详细产出', curator: '🧠 知识梳理官 · 详细产出' };
+  $('#agentModalTitle').textContent = titles[agentId] || 'Agent 详情';
+  const body = $('#agentModalBody');
+  body.innerHTML = '';
+
+  if (agentId === 'collector') {
+    const m = r.materials;
+    body.appendChild(el('div', 'agent-detail-section', `<h4>📊 收集概览</h4>`));
+    const stats = el('div', 'agent-stats');
+    stats.innerHTML = `
+      <div class="agent-stat"><span class="num">${(m.sources || []).length}</span><span class="label">份资料</span></div>
+      <div class="agent-stat"><span class="num">${(m.matchedKnowledge || []).length}</span><span class="label">篇知乎知识</span></div>
+      <div class="agent-stat"><span class="num">${(m.hotTopics || []).length}</span><span class="label">条相关热点</span></div>
+    `;
+    body.appendChild(stats);
+
+    if (m.sources && m.sources.length) {
+      body.appendChild(el('div', 'agent-detail-section', '<h4>📚 资料清单</h4>'));
+      const list = el('div', 'agent-source-list');
+      m.sources.forEach((s) => {
+        const item = el('div', 'agent-source-item');
+        item.innerHTML = `<div class="agent-source-kind">${esc(s.kind)}</div><div class="agent-source-title">${esc(s.title)}</div><div class="agent-source-desc">${esc(s.desc || '')}</div>`;
+        list.appendChild(item);
+      });
+      body.appendChild(list);
+    }
+
+    if (m.hotTopics && m.hotTopics.length) {
+      body.appendChild(el('div', 'agent-detail-section', '<h4>🔥 相关热点</h4>'));
+      const hotList = el('div', 'agent-hot-list');
+      m.hotTopics.forEach((h) => {
+        hotList.appendChild(el('div', 'agent-hot-item', `<span class="rank">${h.rank}</span> ${esc(h.title)} <span class="heat">${esc(h.heat || '')}</span>`));
+      });
+      body.appendChild(hotList);
+    }
+  }
+
+  if (agentId === 'comparator') {
+    const c = r.comparison;
+    body.appendChild(el('div', 'agent-detail-section', `<h4>📊 对照概览</h4>`));
+    const stats = el('div', 'agent-stats');
+    stats.innerHTML = `
+      <div class="agent-stat"><span class="num">${(c.debates || []).length}</span><span class="label">组核心讨论</span></div>
+      <div class="agent-stat"><span class="num">${(c.consensus || []).length}</span><span class="label">条共识观点</span></div>
+      <div class="agent-stat"><span class="num">${c.aiSummary ? '有' : '无'}</span><span class="label">直答综述</span></div>
+    `;
+    body.appendChild(stats);
+
+    if (c.aiSummary) {
+      body.appendChild(el('div', 'agent-detail-section', '<h4>🤖 直答综述</h4>'));
+      body.appendChild(el('div', 'agent-ai-summary', esc(c.aiSummary)));
+    }
+
+    if (c.debates && c.debates.length) {
+      body.appendChild(el('div', 'agent-detail-section', '<h4>⚖️ 讨论详情</h4>'));
+      c.debates.forEach((d) => {
+        const card = el('div', 'agent-debate-card');
+        card.innerHTML = `<div class="agent-debate-q">${esc(d.question)}</div>`;
+        const views = el('div', 'agent-debate-views');
+        (d.views || []).forEach((v, vi) => {
+          const col = el('div', `agent-view-col ${vi % 2 === 0 ? 'a' : 'b'}`);
+          col.innerHTML = `<div class="agent-view-stance">${esc(v.stance)}</div><div class="agent-view-label">${esc(v.label)}</div>`;
+          const ul = el('ul');
+          (v.points || []).forEach((p) => ul.appendChild(el('li', '', esc(p))));
+          col.appendChild(ul);
+          views.appendChild(col);
+        });
+        card.appendChild(views);
+        if (d.consensus) card.appendChild(el('div', 'agent-debate-consensus', `<strong>共识：</strong>${esc(d.consensus)}`));
+        if (d.guidance) card.appendChild(el('div', 'agent-debate-guidance', `<strong>引路人建议：</strong>${esc(d.guidance)}`));
+        body.appendChild(card);
+      });
+    }
+  }
+
+  if (agentId === 'curator') {
+    const sp = r.studyPlan;
+    body.appendChild(el('div', 'agent-detail-section', `<h4>📊 梳理概览</h4>`));
+    const stats = el('div', 'agent-stats');
+    const fcTypes = {};
+    (sp.flashcards || []).forEach((f) => { fcTypes[f.type] = (fcTypes[f.type] || 0) + 1; });
+    stats.innerHTML = `
+      <div class="agent-stat"><span class="num">${(sp.stages || []).length}</span><span class="label">个学习阶段</span></div>
+      <div class="agent-stat"><span class="num">${(sp.concepts || []).length}</span><span class="label">个核心概念</span></div>
+      <div class="agent-stat"><span class="num">${(sp.flashcards || []).length}</span><span class="label">张复习卡片</span></div>
+    `;
+    body.appendChild(stats);
+
+    if (sp.timePlan) {
+      body.appendChild(el('div', 'agent-detail-section', '<h4>🗓️ 整体时间规划</h4>'));
+      body.appendChild(el('div', 'agent-timeplan', esc(sp.timePlan)));
+    }
+
+    body.appendChild(el('div', 'agent-detail-section', '<h4>🗺️ 学习阶段</h4>'));
+    (sp.stages || []).forEach((s) => {
+      const stage = el('div', 'agent-stage-item');
+      stage.innerHTML = `<div class="agent-stage-head"><span class="agent-stage-num">${s.order}</span> <strong>${esc(s.title)}</strong> <span class="agent-stage-time">${esc(s.timeHint || '')}</span></div>`;
+      stage.appendChild(el('div', 'agent-stage-goal', esc(s.goal || '')));
+      const ul = el('ul');
+      (s.actions || []).forEach((a) => ul.appendChild(el('li', '', esc(a))));
+      stage.appendChild(ul);
+      if (s.pitfalls && s.pitfalls.length) stage.appendChild(el('div', 'agent-stage-pitfall', `⚠️ 避坑：${s.pitfalls.map(esc).join('；')}`));
+      if (s.milestone) stage.appendChild(el('div', 'agent-stage-milestone', `🏁 里程碑：${esc(s.milestone)}`));
+      body.appendChild(stage);
+    });
+
+    body.appendChild(el('div', 'agent-detail-section', '<h4>🃏 复习卡片构成</h4>'));
+    const fcList = el('div', 'agent-fc-types');
+    Object.entries(fcTypes).forEach(([type, count]) => {
+      fcList.appendChild(el('span', 'agent-fc-tag', `${type} × ${count}`));
+    });
+    body.appendChild(fcList);
+  }
+
+  $('#agentModal').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAgentModal() {
+  $('#agentModal').hidden = true;
   document.body.style.overflow = '';
 }
 

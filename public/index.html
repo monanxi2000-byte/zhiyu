@@ -7,6 +7,9 @@
   <meta name="description" content="知遇 —— 基于知乎知识生态的 AI 新人引路助手。多 Agent 协作完成资料整理、观点对照与知识梳理。" />
   <link rel="icon" href="/assets/icon.png" type="image/png" />
   <link rel="stylesheet" href="/css/style.css" />
+  <!-- Three.js 3D 引擎 -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
@@ -62,12 +65,10 @@
       </div>
 
       <div class="hero-visual hero-scene" id="heroScene">
-        <div class="layer l1">
-          <div class="hero-mascot-wrap">
-            <img class="hero-mascot" src="/assets/mascot/mascot-wave.gif" alt="刘看山向你招手" />
-            <div class="hero-ring"></div>
-            <div class="hero-ring r2"></div>
-          </div>
+        <!-- 3D 可拖拽立方体：刘看山三视图 + 产品信息 -->
+        <div class="hero-3d-wrap">
+          <canvas id="hero3d"></canvas>
+          <div class="hero-3d-hint">🖱️ 拖拽旋转 · 滚轮缩放</div>
         </div>
         <div class="float-card fc-1 layer l2">📚 学习路径</div>
         <div class="float-card fc-2 layer l3">⚖️ 观点对照</div>
@@ -114,18 +115,21 @@
             <div class="pipe-state">待命</div>
             <div class="pipe-name">🔍 资料收集官</div>
             <div class="pipe-msg">等待启动</div>
+            <button class="pipe-detail-btn" data-agent="collector" hidden>查看详情 →</button>
           </div>
           <div class="pipe-arrow">→</div>
           <div class="pipe-agent" id="pipeComparator">
             <div class="pipe-state">待命</div>
             <div class="pipe-name">⚖️ 观点对照官</div>
             <div class="pipe-msg">等待启动</div>
+            <button class="pipe-detail-btn" data-agent="comparator" hidden>查看详情 →</button>
           </div>
           <div class="pipe-arrow">→</div>
           <div class="pipe-agent" id="pipeCurator">
             <div class="pipe-state">待命</div>
             <div class="pipe-name">🧠 知识梳理官</div>
             <div class="pipe-msg">等待启动</div>
+            <button class="pipe-detail-btn" data-agent="curator" hidden>查看详情 →</button>
           </div>
         </div>
         <div class="pipeline-log" id="pipelineLog"></div>
@@ -186,6 +190,13 @@
       <!-- 相关热点 -->
       <div class="result-block">
         <h3 class="result-title">🔥 相关热点 <span class="result-sub" id="hotHint"></span></h3>
+        <!-- 身份定位过滤 -->
+        <div class="audience-filter" id="audienceFilter">
+          <span class="audience-label">我的身份：</span>
+          <button class="audience-btn active" data-audience="all">全部</button>
+          <button class="audience-btn" data-audience="student">🎓 学生</button>
+          <button class="audience-btn" data-audience="professional">💼 职场新人</button>
+        </div>
         <div class="hot-list" id="hotList"></div>
       </div>
     </div>
@@ -195,32 +206,186 @@
   <section class="about" id="about">
     <div class="section-inner">
       <h2 class="section-title">关于「知遇」与队伍「邂逅」</h2>
-      <div class="about-grid">
-        <div class="about-card">
-          <h3>🦊 名字的起源</h3>
-          <p>
-            我们大多数人第一次遇到知乎，不是在刻意寻找它，而是在搜索某个答案时「邂逅」了它。
-            它帮我们找到了想要的答案，于是我们留下来。
-            <strong>知遇</strong>，正是希望每一位进入新领域的新人，都能在知乎里与「引路人」相遇。
+      <p class="section-sub">一个人，一个想法，一次与知乎的邂逅</p>
+
+      <!-- 队伍故事 -->
+      <div class="about-story reveal">
+        <div class="about-story-left">
+          <div class="about-team-badge">队伍「邂逅」· 1 人队</div>
+          <h3 class="about-story-title">名字的起源</h3>
+          <p class="about-story-text">
+            我们大多数人第一次遇到知乎，不是在刻意寻找它，而是在浏览器或其他软件里搜索某个答案时，
+            偶然<strong>「邂逅」</strong>了它。它帮我们找到了想要的答案，于是我们留下来。
+          </p>
+          <p class="about-story-text">
+            <strong>知遇</strong>，正是希望每一位进入新领域的新人——无论是刚入学的学生，还是刚入行的职场新人——
+            都能在知乎海量的经验里，与一位「引路人」相遇。不用再在碎片化的信息里迷路，
+            知遇把散落的优质回答重新组织成<strong>可执行的学习路径、可对照的观点、可复习的卡片</strong>。
           </p>
         </div>
-        <div class="about-card">
-          <h3>⚙️ 技术方案</h3>
-          <p>
-            Node.js + Express 后端 + 原生前端单页。多 Agent 编排器顺序调度
-            「资料收集官 → 观点对照官 → 知识梳理官」，通过 SSE 推送实时进度。
-            知乎搜索 / 全网搜索 / 热榜 / 直答全部走开放平台接口并带应用层缓存。
-          </p>
-        </div>
-        <div class="about-card">
-          <h3>🤝 与知乎生态的契合</h3>
-          <p>
-            知乎沉淀了海量真实经验，但「信息多」不等于「可上手」。知遇把散落的优质回答
-            重新组织成可执行的学习路径与可复习的知识卡片，让知识不只是被看见，也能被
-            理解、吸收和再次创造——这正是本届黑客松「学习工具与知识生产」赛道的目标。
-          </p>
+        <div class="about-story-right">
+          <div class="about-mascot-3d">
+            <img src="/assets/mascot/mascot-wave.gif" alt="刘看山" />
+          </div>
+          <div class="about-quote">「与新知相遇，与引路人同行」</div>
         </div>
       </div>
+
+      <!-- 可切换 Tab：产品亮点 / 技术架构 / 知乎生态 / 未来规划 -->
+      <div class="about-tabs reveal">
+        <div class="about-tab-nav">
+          <button class="about-tab-btn active" data-tab="features">✨ 产品亮点</button>
+          <button class="about-tab-btn" data-tab="tech">⚙️ 技术架构</button>
+          <button class="about-tab-btn" data-tab="zhihu">🦊 知乎生态</button>
+          <button class="about-tab-btn" data-tab="roadmap">🚀 未来规划</button>
+        </div>
+        <div class="about-tab-content">
+          <!-- 产品亮点 -->
+          <div class="about-tab-panel active" data-panel="features">
+            <div class="about-feature-grid">
+              <div class="about-feature-card tilt">
+                <div class="about-feature-icon">🔍</div>
+                <h4>多 Agent 协作</h4>
+                <p>三个 AI Agent 分工协作：资料收集官搜集筛选、观点对照官聚类分歧、知识梳理官编织路径，全程 SSE 实时推送进度。</p>
+              </div>
+              <div class="about-feature-card tilt">
+                <div class="about-feature-icon">🗺️</div>
+                <h4>可执行学习路径</h4>
+                <p>不是空泛的建议，而是分阶段的行动清单：每个阶段有目标、有动作、有避坑、有里程碑，做到这步才算过。</p>
+              </div>
+              <div class="about-feature-card tilt">
+                <div class="about-feature-icon">⚖️</div>
+                <h4>观点对照不盲从</h4>
+                <p>领域内的核心分歧摆开来看：各方观点、理由、来源一一标注，最后给出共识与引路人建议，帮你做出适合自己的选择。</p>
+              </div>
+              <div class="about-feature-card tilt">
+                <div class="about-feature-icon">🃏</div>
+                <h4>四类复习卡片</h4>
+                <p>概念卡、行动卡、避坑卡、决策卡——每次引路生成 20+ 张，点击翻转、间隔复习，把学到的东西真正记住。</p>
+              </div>
+              <div class="about-feature-card tilt">
+                <div class="about-feature-icon">🎯</div>
+                <h4>身份定位过滤</h4>
+                <p>学生还是职场新人？一键切换身份，相关热点自动过滤，只给你看最相关的引路入口。</p>
+              </div>
+              <div class="about-feature-card tilt">
+                <div class="about-feature-icon">🧊</div>
+                <h4>3D 可交互体验</h4>
+                <p>刘看山三视图 3D 立方体可拖拽旋转，立体阶梯时间线、卡片 tilt 悬停，让学习工具也有质感。</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 技术架构 -->
+          <div class="about-tab-panel" data-panel="tech">
+            <div class="about-tech-stack">
+              <div class="about-tech-item">
+                <div class="about-tech-label">后端</div>
+                <div class="about-tech-detail">Node.js + Express · SSE 实时推送 · 内存限流 · TTL 缓存</div>
+              </div>
+              <div class="about-tech-item">
+                <div class="about-tech-label">前端</div>
+                <div class="about-tech-detail">原生 HTML/CSS/JS 单页 · Three.js 3D 引擎 · IntersectionObserver 滚动渐入</div>
+              </div>
+              <div class="about-tech-item">
+                <div class="about-tech-label">AI 能力</div>
+                <div class="about-tech-detail">知乎开放平台（搜索/热榜/直答）· OpenAI 兼容 LLM（Claude/GPT/DeepSeek）· 多 Agent 编排器</div>
+              </div>
+              <div class="about-tech-item">
+                <div class="about-tech-label">数据</div>
+                <div class="about-tech-detail">知乎黑客松知识内容接口（真实文章）· 8 个内置场景模板 · localStorage 学习进度持久化</div>
+              </div>
+              <div class="about-tech-item">
+                <div class="about-tech-label">部署</div>
+                <div class="about-tech-detail">Zeabur / Vercel / 自有服务器 · 环境变量配置凭证 · 演示模式与实时模式自动切换</div>
+              </div>
+            </div>
+            <div class="about-tech-flow">
+              <div class="flow-step"><span class="flow-num">1</span>用户输入话题</div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step"><span class="flow-num">2</span>资料收集官<br/>搜索+去重+排序</div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step"><span class="flow-num">3</span>观点对照官<br/>聚类+对照+共识</div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step"><span class="flow-num">4</span>知识梳理官<br/>路径+概念+卡片</div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step"><span class="flow-num">5</span>可交互结果页</div>
+            </div>
+          </div>
+
+          <!-- 知乎生态 -->
+          <div class="about-tab-panel" data-panel="zhihu">
+            <div class="about-zhihu-text">
+              <p>
+                知乎沉淀了海量来自真实问题的知识内容：有人分享专业经验，有人拆解复杂概念，
+                有人记录职业路径，也有人把一个领域讲得足够深入。
+              </p>
+              <p>
+                但「信息多」不等于「可上手」。大多数新人面对一个新领域时，遇到的问题不是「没有答案」，
+                而是<strong>答案太多、太散、太碎片化</strong>——不知道从哪开始、不知道该信谁、不知道学完怎么用。
+              </p>
+              <p>
+                知遇要做的，就是把知乎里散落的优质回答<strong>重新组织</strong>：
+                用多 Agent 协作完成资料整理、观点对照与知识梳理，让知识不只是被看见，
+                也能被理解、吸收和再次创造——这正是本届黑客松「学习工具与知识生产」赛道的目标。
+              </p>
+            </div>
+            <div class="about-zhihu-points">
+              <div class="about-zhihu-point"><strong>✓ 真实内容</strong><span>精选资料来自知乎知识内容接口，作者与正文可溯源</span></div>
+              <div class="about-zhihu-point"><strong>✓ 标注来源</strong><span>每条观点标注来源，演示素材明确标注「演示」</span></div>
+              <div class="about-zhihu-point"><strong>✓ 遵守额度</strong><span>接口调用带应用层缓存，遵守官方日调用上限</span></div>
+              <div class="about-zhihu-point"><strong>✓ 双模式切换</strong><span>无凭证时演示模式可跑通，配置后自动升级实时模式</span></div>
+            </div>
+          </div>
+
+          <!-- 未来规划 -->
+          <div class="about-tab-panel" data-panel="roadmap">
+            <div class="about-roadmap">
+              <div class="roadmap-item done">
+                <div class="roadmap-dot"></div>
+                <div class="roadmap-content">
+                  <div class="roadmap-phase">v1.0 · 已完成</div>
+                  <div class="roadmap-title">基础引路流程</div>
+                  <p>三 Agent 流水线跑通：8 个内置场景 + 知乎知识内容接口 + SSE 实时进度 + 学习路径/概念/观点/卡片四区块。</p>
+                </div>
+              </div>
+              <div class="roadmap-item done">
+                <div class="roadmap-dot"></div>
+                <div class="roadmap-content">
+                  <div class="roadmap-phase">v2.0 · 已完成</div>
+                  <div class="roadmap-title">3D 视觉 + 内容深化</div>
+                  <p>立体阶梯时间线、卡片 tilt、Hero 视差；每阶段加避坑/里程碑/建议用时；概念加例子；讨论加引路人建议；四类复习卡片。</p>
+                </div>
+              </div>
+              <div class="roadmap-item current">
+                <div class="roadmap-dot"></div>
+                <div class="roadmap-content">
+                  <div class="roadmap-phase">v3.0 · 进行中</div>
+                  <div class="roadmap-title">3D 可交互 + Agent 详情 + 身份定位</div>
+                  <p>刘看山三视图 3D 立方体可拖拽；三 Agent 点击查看详细产出；学生/职场新人身份过滤热点；关于我们动态优化。</p>
+                </div>
+              </div>
+              <div class="roadmap-item">
+                <div class="roadmap-dot"></div>
+                <div class="roadmap-content">
+                  <div class="roadmap-phase">v4.0 · 待 API Key</div>
+                  <div class="roadmap-title">LLM 深度定制 + 追问</div>
+                  <p>接入 OpenAI 兼容 LLM（Claude），任意话题动态生成定制路径；结果区加追问输入框，LLM 实时回答；模板与 LLM 双模式切换。</p>
+                </div>
+              </div>
+              <div class="roadmap-item">
+                <div class="roadmap-dot"></div>
+                <div class="roadmap-content">
+                  <div class="roadmap-phase">v5.0 · 未来</div>
+                  <div class="roadmap-title">社区与个性化</div>
+                  <p>用户学习进度云端同步；社区分享学习路径；基于学习历史的个性化推荐；知乎账号登录与人气奖接入。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="data-note">
         <strong>数据与模式说明：</strong>
         <span id="dataNoteText">当前为演示模式：观点对照与热榜使用内置精选素材（已逐条标注「演示」），
@@ -254,6 +419,18 @@
     </div>
   </div>
 
+  <!-- Agent 详情弹窗 -->
+  <div class="modal-mask" id="agentModal" hidden>
+    <div class="modal modal-wide">
+      <div class="modal-head">
+        <span class="modal-title" id="agentModalTitle"></span>
+        <button class="modal-close" id="agentModalClose">✕</button>
+      </div>
+      <div class="modal-body" id="agentModalBody"></div>
+    </div>
+  </div>
+
   <script src="/js/app.js"></script>
+  <script src="/js/three-scene.js"></script>
 </body>
 </html>

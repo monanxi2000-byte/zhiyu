@@ -86,6 +86,7 @@ async function collect(topic, scenario, ctx) {
         heat: h.HeatScore || h.heat_score || h.hot_value || '',
         type: h.Type || h.type || '热点',
         tag: '实时',
+        audience: 'both',
       }));
     } catch (err) {
       emit('collector', 'warn', `热榜暂不可用：${err.message}`);
