@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>知遇 · 新领域的第一位引路人</title>
+  <meta name="description" content="知遇 —— 基于知乎知识生态的 AI 新人引路助手。多 Agent 协作完成资料整理、观点对照与知识梳理。" />
+  <link rel="icon" href="/assets/icon.png" type="image/png" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- 顶部导航 -->
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#top">
+        <img class="brand-mascot" src="/assets/mascot/mascot-wave.gif" alt="刘看山" />
+        <span class="brand-name">知遇<span class="brand-en">ZhiYu</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="#how">多Agent机制</a>
+        <a href="#about">关于我们</a>
+        <span class="mode-badge" id="modeBadge">模式检测中…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主视觉 -->
+  <section class="hero" id="top">
+    <div class="hero-bg"></div>
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <div class="hero-eyebrow">知乎黑客松 2026 · 校园新锐季 · 队伍「邂逅」</div>
+        <h1>想进入一个新领域，<br />却不知从<span class="hl">哪开始</span>？</h1>
+        <p class="hero-sub">
+          考研、转行、做自媒体、学数据分析……每个领域都有成千上万条经验躺在知乎里。
+          <strong>知遇</strong>派出三个 AI Agent，为你把「碎片化的经验」整理成
+          <strong>学习路径、观点对照与复习卡片</strong>。
+        </p>
+
+        <!-- 场景快捷入口 -->
+        <div class="scenario-chips" id="scenarioChips"></div>
+
+        <!-- 输入区 -->
+        <form class="guide-form" id="guideForm">
+          <input
+            id="topicInput"
+            type="text"
+            maxlength="50"
+            placeholder="例如：数据分析入门 / 考研数学 / 转行程序员…"
+            autocomplete="off"
+          />
+          <button type="submit" id="guideBtn">
+            <span class="btn-text">开始引路</span>
+            <span class="btn-loading" hidden>引路中…</span>
+          </button>
+        </form>
+        <div class="form-hint">由三个 AI Agent 协作完成 · 资料整理 → 观点对照 → 知识梳理</div>
+      </div>
+
+      <div class="hero-visual">
+        <img class="hero-mascot" src="/assets/mascot/mascot-wave.gif" alt="刘看山向你招手" />
+        <div class="float-card fc-1">📚 学习路径</div>
+        <div class="float-card fc-2">⚖️ 观点对照</div>
+        <div class="float-card fc-3">🃏 复习卡片</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 多 Agent 机制 -->
+  <section class="agents-strip" id="how">
+    <div class="section-inner">
+      <h2 class="section-title">三个 Agent，为你引路</h2>
+      <p class="section-sub">同一个话题，三种分工，协作完成从「资料」到「可执行」的全过程</p>
+      <div class="agent-cards">
+        <div class="agent-card">
+          <div class="agent-icon a1">🔍</div>
+          <h3>Agent 1 · 资料收集官</h3>
+          <p>调用知乎搜索 / 全网搜索与知乎知识内容，搜集、去重、筛选优质资料，按相关度排序。</p>
+          <div class="agent-tag">数据源 · 知乎开放平台</div>
+        </div>
+        <div class="agent-card">
+          <div class="agent-icon a2">⚖️</div>
+          <h3>Agent 2 · 观点对照官</h3>
+          <p>识别领域内核心讨论：共识是什么、分歧在哪、各自理由是什么，每条观点标注来源。</p>
+          <div class="agent-tag">能力 · 观点聚类与对照</div>
+        </div>
+        <div class="agent-card">
+          <div class="agent-icon a3">🧠</div>
+          <h3>Agent 3 · 知识梳理官</h3>
+          <p>把资料编织成分阶段学习路径、核心概念清单与复习卡片，让知识可执行、可复习。</p>
+          <div class="agent-tag">产出 · 路径 / 概念 / 卡片</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 运行中：Agent 流水线进度 -->
+  <section class="pipeline" id="pipeline" hidden>
+    <div class="section-inner">
+      <h2 class="section-title" id="pipelineTitle">正在为你引路…</h2>
+      <div class="pipeline-box">
+        <div class="pipeline-agents">
+          <div class="pipe-agent" id="pipeCollector">
+            <div class="pipe-state">待命</div>
+            <div class="pipe-name">🔍 资料收集官</div>
+            <div class="pipe-msg">等待启动</div>
+          </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-agent" id="pipeComparator">
+            <div class="pipe-state">待命</div>
+            <div class="pipe-name">⚖️ 观点对照官</div>
+            <div class="pipe-msg">等待启动</div>
+          </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-agent" id="pipeCurator">
+            <div class="pipe-state">待命</div>
+            <div class="pipe-name">🧠 知识梳理官</div>
+            <div class="pipe-msg">等待启动</div>
+          </div>
+        </div>
+        <div class="pipeline-log" id="pipelineLog"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 结果区 -->
+  <section class="results" id="results" hidden>
+    <div class="section-inner">
+      <div class="meta-bar" id="metaBar"></div>
+
+      <!-- 学习路径 -->
+      <div class="result-block">
+        <h3 class="result-title">🗺️ 学习路径 <span class="result-sub">分阶段走，每步都可执行</span></h3>
+        <div class="timeline" id="timeline"></div>
+      </div>
+
+      <!-- 核心概念 -->
+      <div class="result-block">
+        <h3 class="result-title">💡 核心概念 <span class="result-sub">点击卡片查看解释</span></h3>
+        <div class="concept-grid" id="conceptGrid"></div>
+      </div>
+
+      <!-- 观点对照 -->
+      <div class="result-block" id="debateBlock">
+        <h3 class="result-title">⚖️ 观点对照 <span class="result-sub">共识与分歧，摆开来看</span></h3>
+        <div id="aiSummaryBox"></div>
+        <div class="debate-list" id="debateList"></div>
+        <div class="consensus-box" id="consensusBox"></div>
+      </div>
+
+      <!-- 精选资料 -->
+      <div class="result-block">
+        <h3 class="result-title">📚 精选资料 <span class="result-sub" id="sourceHint"></span></h3>
+        <div class="source-list" id="sourceList"></div>
+      </div>
+
+      <!-- 复习卡片 -->
+      <div class="result-block">
+        <h3 class="result-title">🃏 复习卡片 <span class="result-sub">点击翻转，间隔复习</span></h3>
+        <div class="flashcard-area">
+          <div class="flashcard" id="flashcard">
+            <div class="flashcard-inner">
+              <div class="flashcard-front"><div class="fc-tag"></div><div class="fc-text"></div></div>
+              <div class="flashcard-back"><div class="fc-tag"></div><div class="fc-text"></div></div>
+            </div>
+          </div>
+          <div class="flash-nav">
+            <button id="fcPrev">← 上一张</button>
+            <span id="fcCount"></span>
+            <button id="fcNext">下一张 →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 相关热点 -->
+      <div class="result-block">
+        <h3 class="result-title">🔥 相关热点 <span class="result-sub" id="hotHint"></span></h3>
+        <div class="hot-list" id="hotList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 关于我们 -->
+  <section class="about" id="about">
+    <div class="section-inner">
+      <h2 class="section-title">关于「知遇」与队伍「邂逅」</h2>
+      <div class="about-grid">
+        <div class="about-card">
+          <h3>🦊 名字的起源</h3>
+          <p>
+            我们大多数人第一次遇到知乎，不是在刻意寻找它，而是在搜索某个答案时「邂逅」了它。
+            它帮我们找到了想要的答案，于是我们留下来。
+            <strong>知遇</strong>，正是希望每一位进入新领域的新人，都能在知乎里与「引路人」相遇。
+          </p>
+        </div>
+        <div class="about-card">
+          <h3>⚙️ 技术方案</h3>
+          <p>
+            Node.js + Express 后端 + 原生前端单页。多 Agent 编排器顺序调度
+            「资料收集官 → 观点对照官 → 知识梳理官」，通过 SSE 推送实时进度。
+            知乎搜索 / 全网搜索 / 热榜 / 直答全部走开放平台接口并带应用层缓存。
+          </p>
+        </div>
+        <div class="about-card">
+          <h3>🤝 与知乎生态的契合</h3>
+          <p>
+            知乎沉淀了海量真实经验，但「信息多」不等于「可上手」。知遇把散落的优质回答
+            重新组织成可执行的学习路径与可复习的知识卡片，让知识不只是被看见，也能被
+            理解、吸收和再次创造——这正是本届黑客松「学习工具与知识生产」赛道的目标。
+          </p>
+        </div>
+      </div>
+      <div class="data-note">
+        <strong>数据与模式说明：</strong>
+        <span id="dataNoteText">当前为演示模式：观点对照与热榜使用内置精选素材（已逐条标注「演示」），
+        精选资料来自知乎黑客松知识内容接口（真实内容）。配置 Access Secret 后，将自动切换为
+        实时知乎搜索 / 全网搜索 / 热榜 / 直答综述。</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img class="footer-mascot" src="/assets/mascot/mascot-idle.gif" alt="刘看山" />
+        <span>知遇 · ZhiYu</span>
+      </div>
+      <div class="footer-meta">
+        知乎黑客松 2026 校园新锐季 · 队伍「邂逅」 · 赛道：学习工具与知识生产 · 多Agent协作完成资料整理、观点对照与知识梳理
+      </div>
+    </div>
+  </footer>
+
+  <!-- 知识内容阅读弹窗 -->
+  <div class="modal-mask" id="readerModal" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <span class="modal-title" id="modalTitle"></span>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-foot">来源：知乎黑客松知识内容接口 · 内容版权归原作者所有</div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

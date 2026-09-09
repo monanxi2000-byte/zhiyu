@@ -1,0 +1,23 @@
+{
+  "name": "zhiyu",
+  "version": "1.0.0",
+  "description": "知遇 — 基于知乎知识生态的 AI 新人引路助手（知乎黑客松 2026 · 队伍「邂逅」）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "zhihu",
+    "hackathon",
+    "ai-agent",
+    "learning"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
