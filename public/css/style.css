@@ -694,3 +694,203 @@ body {
   .debate-views { grid-template-columns: 1fr; }
   .float-card { display: none; }
 }
+
+/* ============================================================
+   v2 升级：3D 立体视觉（克制不花哨）+ 互动增强
+   ============================================================ */
+
+/* ---------- 顶部滚动进度条 ---------- */
+.scroll-progress {
+  position: fixed;
+  top: 0; left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  z-index: 300;
+  border-radius: 0 3px 3px 0;
+  transition: width 0.1s linear;
+}
+
+/* ---------- 滚动渐入 ---------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.reveal.visible { opacity: 1; transform: none; }
+
+/* ---------- 立体 tilt 卡片 ---------- */
+.tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.18s ease-out, box-shadow 0.25s ease, border-color 0.25s ease;
+  will-change: transform;
+}
+.tilt-inner { transform: translateZ(24px); }
+
+/* ---------- Hero 3D 视差场景 ---------- */
+.hero-scene {
+  position: relative;
+  perspective: 1000px;
+}
+.hero-scene .layer { will-change: transform; transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.3, 1); }
+.hero-scene .layer.l1 { transform: translateZ(0); }
+.hero-scene .layer.l2 { transform: translateZ(40px); }
+.hero-scene .layer.l3 { transform: translateZ(80px); }
+.hero-mascot-wrap { position: relative; display: inline-block; }
+.hero-ring {
+  position: absolute;
+  inset: -14px;
+  border: 2px dashed rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  animation: spin 26s linear infinite;
+}
+.hero-ring.r2 { inset: -30px; border-color: rgba(255, 154, 61, 0.5); animation-duration: 40s; animation-direction: reverse; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- 立体阶梯时间线 ---------- */
+.timeline-3d { perspective: 1400px; display: flex; flex-direction: column; gap: 18px; }
+.timeline-stage-3d {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 22px 18px 58px;
+  box-shadow: var(--shadow);
+  transform: rotateX(0deg) translateZ(0);
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+  transform-style: preserve-3d;
+}
+.timeline-stage-3d:nth-child(2) { margin-left: 18px; }
+.timeline-stage-3d:nth-child(3) { margin-left: 36px; }
+.timeline-stage-3d:nth-child(4) { margin-left: 54px; }
+.timeline-stage-3d:nth-child(n+5) { margin-left: 72px; }
+.timeline-stage-3d:hover {
+  transform: rotateX(-4deg) translateY(-4px) translateZ(30px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary);
+}
+.stage-num {
+  position: absolute;
+  left: 16px; top: 18px;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 132, 255, 0.35);
+  transform: translateZ(36px);
+}
+.stage-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.stage-head h4 { font-size: 17px; }
+.stage-timehint {
+  font-size: 12px;
+  color: var(--text-3);
+  background: var(--bg);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.stage-check {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text-3);
+  cursor: pointer; user-select: none;
+}
+.stage-check input { accent-color: var(--primary); width: 15px; height: 15px; cursor: pointer; }
+.stage-card.done { background: #f8fdf8; border-color: #b7eb8f; }
+.stage-card.done .stage-head h4 { color: #389e0d; }
+
+/* 阶段展开细节 */
+.stage-detail {
+  margin-top: 12px;
+  border-top: 1px dashed var(--line);
+  padding-top: 10px;
+  display: none;
+}
+.stage-card.expanded .stage-detail { display: block; animation: fadeUp 0.3s ease; }
+.detail-row { font-size: 13px; color: var(--text-2); margin-bottom: 8px; line-height: 1.7; }
+.detail-row .dt { font-weight: 700; }
+.detail-row.pitfall { color: #d46b08; }
+.detail-row.milestone { color: #389e0d; }
+.stage-toggle {
+  margin-top: 10px;
+  border: none;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all 0.2s;
+}
+.stage-toggle:hover { background: var(--primary); color: #fff; }
+
+/* ---------- 概念卡升级 ---------- */
+.concept-card .concept-example {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-3);
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px 10px;
+  line-height: 1.6;
+}
+.concept-card.open .concept-example { background: #fff; }
+
+/* ---------- 辩论卡升级 ---------- */
+.debate-guidance {
+  margin-top: 12px;
+  background: linear-gradient(135deg, var(--primary-soft), #f0f6ff);
+  border: 1px solid #d6e4ff;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--primary-dark);
+}
+.debate-guidance strong { margin-right: 4px; }
+
+/* ---------- 热点可点击 ---------- */
+.hot-item {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  transition: all 0.25s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.hot-item:hover {
+  border-color: var(--primary);
+  transform: translateY(-3px) rotateX(3deg);
+  box-shadow: var(--shadow-lg);
+}
+.hot-item .hot-go { margin-left: auto; color: var(--text-3); font-size: 14px; opacity: 0; transition: opacity 0.2s; }
+.hot-item:hover .hot-go { opacity: 1; color: var(--primary); }
+
+/* ---------- 时间规划条 ---------- */
+.timeplan-box {
+  background: linear-gradient(135deg, #fff8f0, #fff);
+  border: 1px solid #ffd8a8;
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 14px;
+  color: #7a4a12;
+  margin-bottom: 18px;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.timeplan-box strong { white-space: nowrap; }
+
+/* ---------- 学习进度徽章 ---------- */
+.meta-progress { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ---------- 卡片悬停通用 3D ---------- */
+.agent-card, .source-card, .concept-card { transform-style: preserve-3d; }
+.agent-card .agent-icon, .source-card h5, .concept-card h5 { transform: translateZ(20px); }
+
+/* 3D 层内容上浮 */
+.pipe-agent, .flashcard-front, .flashcard-back { transform-style: preserve-3d; }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 900px) {
+  .timeline-stage-3d:nth-child(n) { margin-left: 0; }
+  .stage-check { margin-left: 0; width: 100%; margin-top: 6px; }
+}

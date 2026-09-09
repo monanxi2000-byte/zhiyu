@@ -10,6 +10,9 @@
 </head>
 <body>
 
+  <!-- 顶部滚动进度条 -->
+  <div class="scroll-progress" id="scrollProgress"></div>
+
   <!-- 顶部导航 -->
   <header class="nav">
     <div class="nav-inner">
@@ -58,11 +61,17 @@
         <div class="form-hint">由三个 AI Agent 协作完成 · 资料整理 → 观点对照 → 知识梳理</div>
       </div>
 
-      <div class="hero-visual">
-        <img class="hero-mascot" src="/assets/mascot/mascot-wave.gif" alt="刘看山向你招手" />
-        <div class="float-card fc-1">📚 学习路径</div>
-        <div class="float-card fc-2">⚖️ 观点对照</div>
-        <div class="float-card fc-3">🃏 复习卡片</div>
+      <div class="hero-visual hero-scene" id="heroScene">
+        <div class="layer l1">
+          <div class="hero-mascot-wrap">
+            <img class="hero-mascot" src="/assets/mascot/mascot-wave.gif" alt="刘看山向你招手" />
+            <div class="hero-ring"></div>
+            <div class="hero-ring r2"></div>
+          </div>
+        </div>
+        <div class="float-card fc-1 layer l2">📚 学习路径</div>
+        <div class="float-card fc-2 layer l3">⚖️ 观点对照</div>
+        <div class="float-card fc-3 layer l2">🃏 复习卡片</div>
       </div>
     </div>
   </section>
@@ -131,8 +140,9 @@
 
       <!-- 学习路径 -->
       <div class="result-block">
-        <h3 class="result-title">🗺️ 学习路径 <span class="result-sub">分阶段走，每步都可执行</span></h3>
-        <div class="timeline" id="timeline"></div>
+        <h3 class="result-title">🗺️ 学习路径 <span class="result-sub">分阶段走，每步都可执行 · 点击「避坑与里程碑」看细节</span></h3>
+        <div id="timePlanBox"></div>
+        <div class="timeline-3d" id="timeline"></div>
       </div>
 
       <!-- 核心概念 -->

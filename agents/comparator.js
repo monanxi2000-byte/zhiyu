@@ -22,12 +22,13 @@ async function compare(topic, scenario, materials, ctx) {
   const consensus = [];
   const seenConsensus = new Set();
 
-  // 1) 领域常见讨论（内置引导性内容）
+  // 1) 领域常见讨论（内置引导性内容，含引路人建议）
   if (scenario && Array.isArray(scenario.debates)) {
     for (const d of scenario.debates) {
       debates.push({
         question: d.question,
         consensus: d.consensus || '',
+        guidance: d.guidance || '',
         views: (d.views || []).map((v) => ({
           stance: v.stance,
           label: v.label,

@@ -1,11 +1,12 @@
 /* ============================================================
-   知遇 ZhiYu · 前端逻辑
-   多 Agent 流水线（SSE 进度）+ 结果渲染
+   知遇 ZhiYu · 前端逻辑 v2
+   多 Agent 流水线（SSE 进度）+ 3D 交互 + 结果渲染
    ============================================================ */
 
 'use strict';
 
 const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 const el = (tag, cls, html) => {
   const node = document.createElement(tag);
   if (cls) node.className = cls;
@@ -18,6 +19,7 @@ const state = {
   flashcards: [],
   fcIndex: 0,
   currentResult: null,
+  currentTopic: '',
 };
 
 /* ---------- 工具 ---------- */
@@ -29,8 +31,71 @@ function esc(s) {
     .replace(/"/g, '&quot;');
 }
 
+/* ---------- 3D 交互基础 ---------- */
+function setupTilt() {
+  const maxDeg = 7;
+  document.addEventListener('mousemove', (e) => {
+    const cards = document.querySelectorAll('.tilt');
+    for (const card of cards) {
+      const r = card.getBoundingClientRect();
+      if (r.width === 0) continue;
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      card.style.transform = `perspective(900px) rotateY(${(px * maxDeg).toFixed(2)}deg) rotateX(${(-py * maxDeg).toFixed(2)}deg) translateZ(6px)`;
+    }
+  });
+  document.addEventListener('mouseleave', () => {
+    $$('.tilt').forEach((c) => (c.style.transform = ''));
+  });
+}
+
+function setupHeroParallax() {
+  const scene = $('#heroScene');
+  if (!scene) return;
+  document.addEventListener('mousemove', (e) => {
+    const dx = e.clientX / window.innerWidth - 0.5;
+    const dy = e.clientY / window.innerHeight - 0.5;
+    scene.querySelectorAll('.layer').forEach((layer, i) => {
+      const depth = (i + 1) * 14;
+      layer.style.transform = `translate3d(${(-dx * depth).toFixed(1)}px, ${(-dy * depth * 0.6).toFixed(1)}px, 0)`;
+    });
+  });
+}
+
+function setupScrollEffects() {
+  const bar = $('#scrollProgress');
+  const updateBar = () => {
+    const h = document.documentElement;
+    const p = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
+    bar.style.width = `${(p * 100).toFixed(1)}%`;
+  };
+  document.addEventListener('scroll', updateBar, { passive: true });
+  updateBar();
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const en of entries) {
+        if (en.isIntersecting) {
+          en.target.classList.add('visible');
+          observer.unobserve(en.target);
+        }
+      }
+    },
+    { threshold: 0.08 }
+  );
+  $$('.reveal').forEach((n) => observer.observe(n));
+  // 动态渲染出的 reveal 元素
+  const resultObserver = new MutationObserver(() => {
+    $$('.reveal:not(.visible)').forEach((n) => observer.observe(n));
+  });
+  resultObserver.observe($('#results'), { childList: true, subtree: true });
+}
+
 /* ---------- 初始化 ---------- */
 async function init() {
+  setupTilt();
+  setupHeroParallax();
+  setupScrollEffects();
   await loadMode();
   await loadScenarios();
   bindEvents();
@@ -63,7 +128,7 @@ async function loadScenarios() {
       const chip = el('button', 'chip', `${sc.emoji} ${esc(sc.name)}`);
       chip.type = 'button';
       chip.addEventListener('click', () => {
-        document.querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
+        $$('.chip').forEach((c) => c.classList.remove('active'));
         chip.classList.add('active');
         $('#topicInput').value = sc.name;
         $('#topicInput').focus();
@@ -102,6 +167,7 @@ function bindEvents() {
 
 /* ---------- 启动流水线 ---------- */
 function startGuide(topic) {
+  state.currentTopic = topic;
   $('#results').hidden = true;
   $('#pipeline').hidden = false;
   $('#guideBtn').disabled = true;
@@ -129,11 +195,9 @@ function startGuide(topic) {
   });
 
   es.addEventListener('error', (ev) => {
-    // EventSource 在正常结束后会触发一次 error；若已收到 result 则忽略
     if (state.currentResult) return;
     es.close();
     pushLog('warn', '实时进度通道中断，正在切换为一次性请求…');
-    // 降级：普通请求
     fetch(`/api/guide?topic=${encodeURIComponent(topic)}`)
       .then((r) => r.json())
       .then((d) => {
@@ -210,14 +274,19 @@ function onResult(result) {
   finishLoading();
   $('#pipelineTitle').textContent = '引路完成 ✨';
   renderMeta(result);
+  renderTimePlan(result);
   renderTimeline(result.studyPlan.stages);
+  updateStageProgress(result.studyPlan.stages);
   renderConcepts(result.studyPlan.concepts);
   renderDebates(result.comparison);
   renderSources(result.materials.sources, result.meta.live);
   renderFlashcards(result.studyPlan.flashcards);
   renderHot(result.materials.hotTopics, result.meta.live);
   $('#results').hidden = false;
-  setTimeout(() => scrollToSection('#results'), 120);
+  setTimeout(() => {
+    scrollToSection('#results');
+    setupScrollEffects();
+  }, 120);
 }
 
 function renderMeta(r) {
@@ -230,36 +299,104 @@ function renderMeta(r) {
   const time = el('span', 'meta-time', `用时 ${m.elapsedMs >= 1000 ? (m.elapsedMs / 1000).toFixed(1) + 's' : m.elapsedMs + 'ms'} · 三个 Agent 协作完成`);
   bar.appendChild(time);
   $('#sourceHint').textContent = m.live ? '来自知乎搜索与全网搜索的实时结果' : '来自知乎黑客松知识内容接口（真实内容）';
-  $('#hotHint').textContent = m.live ? '来自知乎实时热榜' : '演示模式 · 内置精选话题';
+  $('#hotHint').textContent = m.live ? '来自知乎实时热榜 · 点击任一话题即可为你引路' : '演示模式 · 内置精选话题 · 点击任一话题即可为你引路';
+}
+
+function renderTimePlan(r) {
+  const box = $('#timePlanBox');
+  box.innerHTML = '';
+  const tp = r.studyPlan.timePlan;
+  if (tp) box.appendChild(el('div', 'timeplan-box', `<strong>🗓️ 整体规划：</strong>${esc(tp)}`));
 }
 
 function renderTimeline(stages) {
   const box = $('#timeline');
   box.innerHTML = '';
+  const savedKey = `zhiyu_progress_${state.currentTopic || ''}`;
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(savedKey) || '{}'); } catch { saved = {}; }
+
   (stages || []).forEach((s) => {
-    const card = el('div', 'timeline-stage');
+    const card = el('div', 'timeline-stage-3d stage-card reveal');
     card.setAttribute('data-order', s.order);
-    const h = el('h4', '', esc(s.title));
+    card.appendChild(el('div', 'stage-num', String(s.order)));
+
+    const head = el('div', 'stage-head');
+    head.appendChild(el('h4', '', esc(s.title)));
+    if (s.timeHint) head.appendChild(el('span', 'stage-timehint', `建议用时 ${esc(s.timeHint)}`));
+    const check = el('label', 'stage-check');
+    const cb = el('input');
+    cb.type = 'checkbox';
+    cb.checked = !!saved[s.order];
+    if (cb.checked) card.classList.add('done');
+    cb.addEventListener('change', () => {
+      saved[s.order] = cb.checked;
+      card.classList.toggle('done', cb.checked);
+      try { localStorage.setItem(savedKey, JSON.stringify(saved)); } catch { /* ignore */ }
+      updateStageProgress(stages);
+    });
+    check.appendChild(cb);
+    check.appendChild(document.createTextNode('已完成'));
+    head.appendChild(check);
+    card.appendChild(head);
+
     const goal = el('div', 'stage-goal', esc(s.goal));
-    card.appendChild(h);
     card.appendChild(goal);
+
     const ul = el('ul', 'stage-actions');
     (s.actions || []).forEach((a) => ul.appendChild(el('li', '', esc(a))));
     card.appendChild(ul);
+
     if (s.skills && s.skills.length) {
       const skills = el('div', 'stage-skills');
       s.skills.forEach((sk) => skills.appendChild(el('span', 'skill-tag', esc(sk))));
       card.appendChild(skills);
     }
+
+    // 展开细节：避坑 / 里程碑
+    const detail = el('div', 'stage-detail');
+    if (s.pitfalls && s.pitfalls.length) {
+      const pit = el('div', 'detail-row pitfall');
+      pit.innerHTML = `<span class="dt">⚠️ 常见坑：</span>${s.pitfalls.map(esc).join('；')}`;
+      detail.appendChild(pit);
+    }
+    if (s.milestone) {
+      detail.appendChild(el('div', 'detail-row milestone', `<span class="dt">🏁 里程碑（做到这步才算过）：</span>${esc(s.milestone)}`));
+    }
+    card.appendChild(detail);
+
+    const toggle = el('button', 'stage-toggle', '展开「避坑 & 里程碑」▾');
+    toggle.addEventListener('click', () => {
+      card.classList.toggle('expanded');
+      toggle.textContent = card.classList.contains('expanded') ? '收起细节 ▴' : '展开「避坑 & 里程碑」▾';
+    });
+    card.appendChild(toggle);
+
     box.appendChild(card);
   });
+}
+
+function updateStageProgress(stages) {
+  const key = `zhiyu_progress_${state.currentTopic || ''}`;
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(key) || '{}'); } catch { saved = {}; }
+  const done = (stages || []).filter((s) => saved[s.order]).length;
+  let badge = $('#stageProgressBadge');
+  if (!badge) {
+    badge = el('span', 'meta-chip meta-progress', '');
+    badge.id = 'stageProgressBadge';
+    $('#metaBar').appendChild(badge);
+  }
+  badge.textContent = `📈 学习进度 ${done}/${stages.length}`;
+  if (done === stages.length) badge.textContent = '🎉 全部完成！';
 }
 
 function renderConcepts(concepts) {
   const box = $('#conceptGrid');
   box.innerHTML = '';
   (concepts || []).forEach((c) => {
-    const card = el('div', 'concept-card', `<h5>${esc(c.name)}</h5><p>${esc(c.explanation)}</p>`);
+    const card = el('div', 'concept-card tilt reveal', `<h5>${esc(c.name)}</h5><p>${esc(c.explanation)}</p>`);
+    if (c.example) card.appendChild(el('div', 'concept-example', `💡 ${esc(c.example)}`));
     card.addEventListener('click', () => card.classList.toggle('open'));
     box.appendChild(card);
   });
@@ -279,7 +416,7 @@ function renderDebates(cmp) {
 
   const debates = cmp.debates || [];
   debates.forEach((d, idx) => {
-    const card = el('div', 'debate-card');
+    const card = el('div', 'debate-card reveal');
     card.appendChild(el('div', 'debate-question', esc(d.question)));
     const views = el('div', 'debate-views');
     (d.views || []).forEach((v, vi) => {
@@ -295,6 +432,9 @@ function renderDebates(cmp) {
     card.appendChild(views);
     if (d.consensus) {
       card.appendChild(el('div', 'debate-consensus', `<strong>🤝 共识：</strong>${esc(d.consensus)}`));
+    }
+    if (d.guidance) {
+      card.appendChild(el('div', 'debate-guidance', `<strong>🧭 引路人建议：</strong>${esc(d.guidance)}`));
     }
     box.appendChild(card);
   });
@@ -323,7 +463,7 @@ function renderSources(sources, live) {
     return;
   }
   sources.forEach((s) => {
-    const card = el('div', 'source-card');
+    const card = el('div', 'source-card tilt reveal');
     const kindMap = { '知乎知识内容': ['kind-knowledge', '知乎知识'], '知乎问答': ['kind-zhihu', '知乎问答'], '全网来源': ['kind-web', '全网来源'] };
     const [cls, label] = kindMap[s.kind] || ['kind-web', s.kind];
     card.appendChild(el('span', `source-kind ${cls}`, esc(label)));
@@ -352,6 +492,8 @@ function renderFlashcards(cards) {
   showCard();
 }
 
+const FC_TYPE_COLOR = { 概念卡: 'primary', 行动卡: 'accent', 避坑卡: 'danger', 决策卡: 'good' };
+
 function showCard() {
   const list = state.flashcards;
   const card = $('#flashcard');
@@ -363,6 +505,7 @@ function showCard() {
   $('#flashcard').style.display = '';
   const fc = list[state.fcIndex];
   card.querySelector('.flashcard-front .fc-tag').textContent = fc.type;
+  card.querySelector('.flashcard-front .fc-tag').style.background = 'rgba(255,255,255,0.22)';
   card.querySelector('.flashcard-front .fc-text').textContent = fc.front;
   card.querySelector('.flashcard-back .fc-tag').textContent = '答案';
   card.querySelector('.flashcard-back .fc-text').textContent = fc.back;
@@ -377,12 +520,12 @@ function flipCard(step) {
   showCard();
 }
 
-/* ---------- 热点 ---------- */
+/* ---------- 热点（可点击引路） ---------- */
 function renderHot(hotList, live) {
   const box = $('#hotList');
   box.innerHTML = '';
   (hotList || []).forEach((h) => {
-    const item = el('div', 'hot-item');
+    const item = el('div', 'hot-item reveal');
     item.appendChild(el('div', 'hot-rank', String(h.rank)));
     const main = el('div', '');
     main.appendChild(el('div', 'hot-title', esc(h.title)));
@@ -392,6 +535,14 @@ function renderHot(hotList, live) {
     if (h.tag) meta.appendChild(el('span', 'hot-tag', esc(h.tag)));
     main.appendChild(meta);
     item.appendChild(main);
+    item.appendChild(el('span', 'hot-go', '引路 →'));
+    item.addEventListener('click', () => {
+      const topic = (h.title || '').replace(/[？?！!。]$/g, '').trim();
+      if (topic) {
+        $('#topicInput').value = topic;
+        startGuide(topic);
+      }
+    });
     box.appendChild(item);
   });
 }
