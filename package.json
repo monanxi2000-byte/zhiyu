@@ -6,7 +6,8 @@
   "scripts": {
     "start": "bash start.sh",
     "dev": "node server.js",
-    "start:local": "node server.js"
+    "start:local": "node server.js",
+    "postinstall": "node scripts/install-cli.js"
   },
   "engines": {
     "node": ">=18"
