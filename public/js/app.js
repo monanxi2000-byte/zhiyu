@@ -342,6 +342,29 @@ function bindEvents() {
   const themeToggle = $('#themeToggle');
   if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
 
+  // 导航"多Agent机制"点击弹窗
+  const agentNavLink = document.querySelector('.nav-links a[href="#how"]');
+  if (agentNavLink) {
+    agentNavLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      const modal = $('#agentInfoModal');
+      if (modal) {
+        modal.hidden = false;
+        document.body.style.overflow = 'hidden';
+      }
+    });
+  }
+
+  // Agent机制弹窗关闭
+  const agentInfoModalClose = $('#agentInfoModalClose');
+  if (agentInfoModalClose) agentInfoModalClose.addEventListener('click', closeAgentInfoModal);
+  const agentInfoModal = $('#agentInfoModal');
+  if (agentInfoModal) {
+    agentInfoModal.addEventListener('click', (e) => {
+      if (e.target.id === 'agentInfoModal') closeAgentInfoModal();
+    });
+  }
+
   // 导出弹窗
   const exportModalClose = $('#exportModalClose');
   if (exportModalClose) exportModalClose.addEventListener('click', closeExportModal);
@@ -377,6 +400,7 @@ function bindEvents() {
     if (e.key === 'Escape') {
       closeReader();
       closeExportModal();
+      closeAgentInfoModal();
     }
     // 只在结果区可见时响应复习卡片快捷键
     if ($('#results') && !$('#results').hidden) {
@@ -1291,6 +1315,14 @@ function toggleTheme() {
 function updateThemeButton(isDark) {
   const btn = $('#themeToggle');
   if (btn) btn.textContent = isDark ? '☀️ 浅色' : '🌙 深色';
+}
+
+function closeAgentInfoModal() {
+  const modal = $('#agentInfoModal');
+  if (modal) {
+    modal.hidden = true;
+    document.body.style.overflow = '';
+  }
 }
 
 /* ---------- 分享图生成 ---------- */

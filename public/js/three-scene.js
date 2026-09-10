@@ -1,7 +1,7 @@
 /* ============================================================
-   知遇 ZhiYu · 3D 可拖拽展示区
-   Three.js 立方体：刘看山三视图（正/侧/背）+ 产品信息
-   交互：鼠标拖拽旋转、滚轮缩放、自动缓慢旋转
+   知遇 ZhiYu · 3D 可拖拽展示区 v2
+   立体刘看山3D模型（多几何体组合）+ 随机动作动画
+   交互：鼠标拖拽旋转、滚轮缩放、自动随机动作
    ============================================================ */
 
 (function () {
@@ -13,7 +13,7 @@
   // ---------- 场景 / 相机 / 渲染器 ----------
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-  camera.position.set(0, 0.6, 5);
+  camera.position.set(0, 0.8, 5.5);
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -22,122 +22,349 @@
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(0x000000, 0);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   // ---------- 光照 ----------
-  const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(ambient);
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  dirLight.position.set(5, 5, 5);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  dirLight.position.set(5, 8, 5);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 1024;
+  dirLight.shadow.mapSize.height = 1024;
   scene.add(dirLight);
-  const fillLight = new THREE.DirectionalLight(0x88aaff, 0.3);
-  fillLight.position.set(-5, -3, -5);
+  const fillLight = new THREE.DirectionalLight(0x88aaff, 0.4);
+  fillLight.position.set(-5, 3, -5);
   scene.add(fillLight);
+  const rimLight = new THREE.DirectionalLight(0xffaa44, 0.3);
+  rimLight.position.set(0, -3, -5);
+  scene.add(rimLight);
 
-  // ---------- 文字纹理生成（Canvas） ----------
-  function makeTextTexture(lines, opts = {}) {
-    const size = 1024;
-    const cv = document.createElement('canvas');
-    cv.width = size;
-    cv.height = size;
-    const ctx = cv.getContext('2d');
+  // ---------- 材质 ----------
+  const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.5, metalness: 0.05 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4 });
+  const blueMat = new THREE.MeshStandardMaterial({ color: 0x0084FF, roughness: 0.3, metalness: 0.2 });
+  const orangeMat = new THREE.MeshStandardMaterial({ color: 0xFF6B35, roughness: 0.5 });
+  const pinkMat = new THREE.MeshStandardMaterial({ color: 0xffb6c1, roughness: 0.6 });
 
-    // 背景渐变
-    const grad = ctx.createLinearGradient(0, 0, size, size);
-    grad.addColorStop(0, opts.bg1 || '#0747A6');
-    grad.addColorStop(1, opts.bg2 || '#0084FF');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, size, size);
+  // ---------- 创建立体刘看山3D模型 ----------
+  const mascot = new THREE.Group();
+  scene.add(mascot);
 
-    // 装饰圆
-    ctx.globalAlpha = 0.08;
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(size * 0.8, size * 0.2, size * 0.3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(size * 0.15, size * 0.85, size * 0.25, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+  // 身体（圆角胶囊形状，用圆柱体+球体组合）
+  const bodyGroup = new THREE.Group();
+  const bodyGeo = new THREE.CapsuleGeometry(0.7, 0.9, 8, 16);
+  const body = new THREE.Mesh(bodyGeo, whiteMat);
+  body.position.y = 0.2;
+  body.castShadow = true;
+  bodyGroup.add(body);
 
-    // 文字
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const total = lines.length;
-    lines.forEach((line, i) => {
-      const y = size * 0.5 + (i - (total - 1) / 2) * (opts.lineHeight || 110);
-      ctx.font = `${opts.weights?.[i] || 800} ${opts.sizes?.[i] || 72}px "Microsoft YaHei", "PingFang SC", sans-serif`;
-      ctx.fillStyle = opts.colors?.[i] || '#fff';
-      ctx.fillText(line, size / 2, y);
-    });
+  // 肚子（稍大的白色球体，营造圆润感）
+  const bellyGeo = new THREE.SphereGeometry(0.55, 16, 16);
+  const belly = new THREE.Mesh(bellyGeo, whiteMat);
+  belly.position.set(0, 0.1, 0.35);
+  belly.scale.set(1, 1.1, 0.6);
+  bodyGroup.add(belly);
+  mascot.add(bodyGroup);
 
-    const tex = new THREE.CanvasTexture(cv);
-    tex.anisotropy = 8;
-    return tex;
+  // 头（球体，稍大）
+  const headGroup = new THREE.Group();
+  const headGeo = new THREE.SphereGeometry(0.65, 24, 24);
+  const head = new THREE.Mesh(headGeo, whiteMat);
+  head.position.y = 1.35;
+  head.castShadow = true;
+  headGroup.add(head);
+
+  // 耳朵（两个三角形，用圆锥体）
+  const earGeo = new THREE.ConeGeometry(0.2, 0.45, 4);
+  const leftEar = new THREE.Mesh(earGeo, whiteMat);
+  leftEar.position.set(-0.4, 1.85, 0);
+  leftEar.rotation.z = 0.3;
+  leftEar.rotation.y = -0.2;
+  headGroup.add(leftEar);
+  const rightEar = new THREE.Mesh(earGeo, whiteMat);
+  rightEar.position.set(0.4, 1.85, 0);
+  rightEar.rotation.z = -0.3;
+  rightEar.rotation.y = 0.2;
+  headGroup.add(rightEar);
+
+  // 耳朵内侧（粉色小三角）
+  const innerEarGeo = new THREE.ConeGeometry(0.1, 0.25, 4);
+  const leftInnerEar = new THREE.Mesh(innerEarGeo, pinkMat);
+  leftInnerEar.position.set(-0.4, 1.82, 0.08);
+  leftInnerEar.rotation.z = 0.3;
+  headGroup.add(leftInnerEar);
+  const rightInnerEar = new THREE.Mesh(innerEarGeo, pinkMat);
+  rightInnerEar.position.set(0.4, 1.82, 0.08);
+  rightInnerEar.rotation.z = -0.3;
+  headGroup.add(rightInnerEar);
+
+  // 眼睛（两个黑色球体，带高光）
+  const eyeGeo = new THREE.SphereGeometry(0.09, 12, 12);
+  const leftEye = new THREE.Mesh(eyeGeo, darkMat);
+  leftEye.position.set(-0.22, 1.4, 0.55);
+  headGroup.add(leftEye);
+  const rightEye = new THREE.Mesh(eyeGeo, darkMat);
+  rightEye.position.set(0.22, 1.4, 0.55);
+  headGroup.add(rightEye);
+
+  // 眼睛高光（小白点）
+  const eyeHighlightGeo = new THREE.SphereGeometry(0.03, 8, 8);
+  const eyeHighlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const leftHighlight = new THREE.Mesh(eyeHighlightGeo, eyeHighlightMat);
+  leftHighlight.position.set(-0.19, 1.43, 0.62);
+  headGroup.add(leftHighlight);
+  const rightHighlight = new THREE.Mesh(eyeHighlightGeo, eyeHighlightMat);
+  rightHighlight.position.set(0.25, 1.43, 0.62);
+  headGroup.add(rightHighlight);
+
+  // 鼻子（黑色大球体，刘看山标志性大鼻子）
+  const noseGeo = new THREE.SphereGeometry(0.16, 16, 16);
+  const nose = new THREE.Mesh(noseGeo, darkMat);
+  nose.position.set(0, 1.22, 0.6);
+  headGroup.add(nose);
+
+  // 鼻子高光
+  const noseHighlight = new THREE.Mesh(eyeHighlightGeo, eyeHighlightMat);
+  noseHighlight.position.set(0.05, 1.27, 0.72);
+  noseHighlight.scale.set(1.5, 1.5, 1.5);
+  headGroup.add(noseHighlight);
+
+  // 腮红（两个粉色圆片）
+  const blushGeo = new THREE.CircleGeometry(0.1, 16);
+  const blushMat = new THREE.MeshBasicMaterial({ color: 0xffb6c1, transparent: true, opacity: 0.5 });
+  const leftBlush = new THREE.Mesh(blushGeo, blushMat);
+  leftBlush.position.set(-0.42, 1.2, 0.5);
+  headGroup.add(leftBlush);
+  const rightBlush = new THREE.Mesh(blushGeo, blushMat);
+  rightBlush.position.set(0.42, 1.2, 0.5);
+  headGroup.add(rightBlush);
+
+  mascot.add(headGroup);
+
+  // 手臂（两个小圆柱体，可动）
+  const armGroup = new THREE.Group();
+  const armGeo = new THREE.CapsuleGeometry(0.12, 0.4, 6, 8);
+  const leftArm = new THREE.Mesh(armGeo, whiteMat);
+  leftArm.position.set(-0.85, 0.4, 0);
+  leftArm.rotation.z = 0.5;
+  leftArm.castShadow = true;
+  armGroup.add(leftArm);
+  const rightArm = new THREE.Mesh(armGeo, whiteMat);
+  rightArm.position.set(0.85, 0.4, 0);
+  rightArm.rotation.z = -0.5;
+  rightArm.castShadow = true;
+  armGroup.add(rightArm);
+  mascot.add(armGroup);
+
+  // 腿（两个短圆柱体）
+  const legGeo = new THREE.CapsuleGeometry(0.15, 0.25, 6, 8);
+  const leftLeg = new THREE.Mesh(legGeo, whiteMat);
+  leftLeg.position.set(-0.3, -0.6, 0);
+  leftLeg.castShadow = true;
+  mascot.add(leftLeg);
+  const rightLeg = new THREE.Mesh(legGeo, whiteMat);
+  rightLeg.position.set(0.3, -0.6, 0);
+  rightLeg.castShadow = true;
+  mascot.add(rightLeg);
+
+  // 脚（两个黑色小圆片）
+  const footGeo = new THREE.SphereGeometry(0.18, 12, 12);
+  const leftFoot = new THREE.Mesh(footGeo, darkMat);
+  leftFoot.position.set(-0.3, -0.85, 0.1);
+  leftFoot.scale.set(1, 0.5, 1.3);
+  mascot.add(leftFoot);
+  const rightFoot = new THREE.Mesh(footGeo, darkMat);
+  rightFoot.position.set(0.3, -0.85, 0.1);
+  rightFoot.scale.set(1, 0.5, 1.3);
+  mascot.add(rightFoot);
+
+  // 尾巴（小圆锥，刘看山的尾巴）
+  const tailGeo = new THREE.ConeGeometry(0.15, 0.4, 8);
+  const tail = new THREE.Mesh(tailGeo, whiteMat);
+  tail.position.set(0, 0.3, -0.75);
+  tail.rotation.x = -Math.PI / 2.5;
+  mascot.add(tail);
+
+  // 围巾（蓝色圆环，增加辨识度）
+  const scarfGeo = new THREE.TorusGeometry(0.6, 0.08, 8, 24);
+  const scarf = new THREE.Mesh(scarfGeo, blueMat);
+  scarf.position.set(0, 0.85, 0);
+  scarf.rotation.x = Math.PI / 2;
+  mascot.add(scarf);
+
+  // 围巾飘带
+  const scarfTailGeo = new THREE.BoxGeometry(0.15, 0.4, 0.05);
+  const scarfTail = new THREE.Mesh(scarfTailGeo, blueMat);
+  scarfTail.position.set(0.35, 0.65, 0.4);
+  scarfTail.rotation.z = -0.3;
+  mascot.add(scarfTail);
+
+  // 底座（发光圆环）
+  const baseGeo = new THREE.TorusGeometry(1.2, 0.05, 8, 32);
+  const baseMat = new THREE.MeshBasicMaterial({ color: 0x0084FF, transparent: true, opacity: 0.3 });
+  const base = new THREE.Mesh(baseGeo, baseMat);
+  base.position.y = -1;
+  base.rotation.x = Math.PI / 2;
+  scene.add(base);
+
+  // 底座内圈
+  const baseInnerGeo = new THREE.TorusGeometry(0.9, 0.03, 8, 32);
+  const baseInnerMat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.2 });
+  const baseInner = new THREE.Mesh(baseInnerGeo, baseInnerMat);
+  baseInner.position.y = -0.98;
+  baseInner.rotation.x = Math.PI / 2;
+  scene.add(baseInner);
+
+  // 漂浮粒子（装饰）
+  const particles = new THREE.Group();
+  const particleGeo = new THREE.SphereGeometry(0.03, 6, 6);
+  const particleMat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.6 });
+  for (let i = 0; i < 20; i++) {
+    const p = new THREE.Mesh(particleGeo, particleMat);
+    p.position.set(
+      (Math.random() - 0.5) * 4,
+      (Math.random() - 0.5) * 4,
+      (Math.random() - 0.5) * 2 - 1
+    );
+    p.userData.speed = 0.002 + Math.random() * 0.005;
+    p.userData.offset = Math.random() * Math.PI * 2;
+    particles.add(p);
   }
+  scene.add(particles);
 
-  // ---------- 图片纹理加载 ----------
-  const loader = new THREE.TextureLoader();
-  loader.setCrossOrigin('anonymous');
+  // ---------- 随机动作系统 ----------
+  const actions = [
+    { name: 'idle', duration: 2000 },
+    { name: 'wave', duration: 1500 },
+    { name: 'nod', duration: 1200 },
+    { name: 'shake', duration: 1000 },
+    { name: 'jump', duration: 800 },
+    { name: 'tilt', duration: 1500 },
+    { name: 'spin', duration: 2000 },
+    { name: 'blink', duration: 400 },
+  ];
 
-  function loadImgTex(url) {
-    return new Promise((resolve) => {
-      loader.load(
-        url,
-        (tex) => {
-          tex.anisotropy = 8;
-          resolve(tex);
-        },
-        undefined,
-        () => resolve(null) // 加载失败返回 null，用纯色兜底
-      );
-    });
-  }
+  let currentAction = 'idle';
+  let actionStartTime = 0;
+  let actionProgress = 0;
+  let nextActionTime = Date.now() + 3000;
 
-  // ---------- 创建立方体 ----------
-  // 面顺序：right(+x), left(-x), top(+y), bottom(-y), front(+z), back(-z)
-  const defaultMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.6 });
-
-  const geometry = new THREE.BoxGeometry(2.2, 2.8, 2.2);
-  const cube = new THREE.Mesh(geometry, [defaultMat, defaultMat, defaultMat, defaultMat, defaultMat, defaultMat]);
-  scene.add(cube);
-
-  // 外层发光边框（线框）
-  const edges = new THREE.EdgesGeometry(geometry);
-  const edgeLines = new THREE.LineSegments(
-    edges,
-    new THREE.LineBasicMaterial({ color: 0x0084FF, transparent: true, opacity: 0.4 })
-  );
-  cube.add(edgeLines);
-
-  // ---------- 加载纹理并赋值 ----------
-  Promise.all([
-    loadImgTex('/assets/mascot/kanshan-side.jpg'),   // right
-    loadImgTex('/assets/mascot/kanshan-c8d9.jpg'),    // left（干净侧面白底）
-    Promise.resolve(makeTextTexture(['知遇', 'ZhiYu'], {
-      sizes: [120, 64], weights: [900, 400],
-      bg1: '#0747A6', bg2: '#0084FF',
-    })), // top
-    Promise.resolve(makeTextTexture(['新领域的', '第一位引路人'], {
-      sizes: [72, 72], weights: [700, 700],
-      bg1: '#FF8C42', bg2: '#FF6B35',
-    })), // bottom
-    loadImgTex('/assets/mascot/kanshan-front.jpg'),  // front
-    loadImgTex('/assets/mascot/kanshan-back.jpg'),   // back
-  ]).then((textures) => {
-    const mats = textures.map((tex, i) => {
-      if (tex) {
-        // 图片纹理用白色底色材质，文字纹理自带背景
-        const isImg = i < 2 || i >= 4; // right/left/front/back 是图片
-        return new THREE.MeshStandardMaterial({
-          map: tex,
-          roughness: isImg ? 0.85 : 0.5,
-          metalness: 0.05,
-        });
+  function pickRandomAction() {
+    const now = Date.now();
+    if (now >= nextActionTime) {
+      // 70%概率选idle，30%概率选其他动作
+      if (Math.random() < 0.3) {
+        const otherActions = actions.filter(a => a.name !== 'idle');
+        currentAction = otherActions[Math.floor(Math.random() * otherActions.length)].name;
+      } else {
+        currentAction = 'idle';
       }
-      return defaultMat;
-    });
-    cube.material = mats;
-  });
+      actionStartTime = now;
+      const action = actions.find(a => a.name === currentAction);
+      nextActionTime = now + action.duration + Math.random() * 2000;
+    }
+  }
+
+  function updateAction(time) {
+    pickRandomAction();
+    const action = actions.find(a => a.name === currentAction);
+    const elapsed = time - actionStartTime;
+    actionProgress = Math.min(elapsed / action.duration, 1);
+
+    // 基础呼吸动画
+    const breathe = Math.sin(time * 0.002) * 0.02;
+    mascot.scale.set(1 + breathe, 1 - breathe * 0.5, 1 + breathe);
+
+    switch (currentAction) {
+      case 'idle':
+        // 缓慢左右摇摆
+        mascot.rotation.z = Math.sin(time * 0.001) * 0.03;
+        mascot.position.y = Math.sin(time * 0.0015) * 0.03;
+        headGroup.rotation.y = Math.sin(time * 0.0008) * 0.1;
+        break;
+
+      case 'wave':
+        // 挥手（右臂上下摆动）
+        const waveAngle = Math.sin(actionProgress * Math.PI * 3) * 0.8;
+        rightArm.rotation.z = -0.5 - waveAngle;
+        rightArm.position.y = 0.4 + Math.sin(actionProgress * Math.PI) * 0.2;
+        headGroup.rotation.z = Math.sin(actionProgress * Math.PI) * 0.1;
+        if (actionProgress >= 1) {
+          rightArm.rotation.z = -0.5;
+          rightArm.position.y = 0.4;
+        }
+        break;
+
+      case 'nod':
+        // 点头
+        headGroup.rotation.x = Math.sin(actionProgress * Math.PI * 2) * 0.2;
+        mascot.position.y = Math.sin(actionProgress * Math.PI) * 0.05;
+        if (actionProgress >= 1) headGroup.rotation.x = 0;
+        break;
+
+      case 'shake':
+        // 摇头
+        headGroup.rotation.y = Math.sin(actionProgress * Math.PI * 4) * 0.25;
+        if (actionProgress >= 1) headGroup.rotation.y = 0;
+        break;
+
+      case 'jump':
+        // 跳跃
+        const jumpHeight = Math.sin(actionProgress * Math.PI) * 0.4;
+        mascot.position.y = jumpHeight;
+        leftArm.rotation.z = 0.5 + Math.sin(actionProgress * Math.PI) * 0.5;
+        rightArm.rotation.z = -0.5 - Math.sin(actionProgress * Math.PI) * 0.5;
+        if (actionProgress >= 1) {
+          mascot.position.y = 0;
+          leftArm.rotation.z = 0.5;
+          rightArm.rotation.z = -0.5;
+        }
+        break;
+
+      case 'tilt':
+        // 歪头+身体倾斜
+        mascot.rotation.z = Math.sin(actionProgress * Math.PI) * 0.15;
+        headGroup.rotation.z = Math.sin(actionProgress * Math.PI) * 0.2;
+        if (actionProgress >= 1) {
+          mascot.rotation.z = 0;
+          headGroup.rotation.z = 0;
+        }
+        break;
+
+      case 'spin':
+        // 旋转一圈
+        mascot.rotation.y = actionProgress * Math.PI * 2;
+        if (actionProgress >= 1) mascot.rotation.y = 0;
+        break;
+
+      case 'blink':
+        // 眨眼
+        const blinkScale = actionProgress < 0.5 ?
+          1 - Math.sin(actionProgress * Math.PI * 2) * 0.9 :
+          0.1 + Math.sin((actionProgress - 0.5) * Math.PI * 2) * 0.9;
+        leftEye.scale.y = Math.max(blinkScale, 0.1);
+        rightEye.scale.y = Math.max(blinkScale, 0.1);
+        if (actionProgress >= 1) {
+          leftEye.scale.y = 1;
+          rightEye.scale.y = 1;
+        }
+        break;
+    }
+
+    // 围巾飘带动画
+    scarfTail.rotation.z = -0.3 + Math.sin(time * 0.003) * 0.15;
+    scarfTail.position.x = 0.35 + Math.sin(time * 0.002) * 0.05;
+
+    // 尾巴摇摆
+    tail.rotation.x = -Math.PI / 2.5 + Math.sin(time * 0.004) * 0.2;
+
+    // 底座发光脉冲
+    baseMat.opacity = 0.2 + Math.sin(time * 0.002) * 0.1;
+    baseInnerMat.opacity = 0.15 + Math.sin(time * 0.0025) * 0.1;
+    base.scale.set(1 + Math.sin(time * 0.0015) * 0.05, 1, 1 + Math.sin(time * 0.0015) * 0.05);
+  }
 
   // ---------- 轨道控制器 ----------
   const controls = new THREE.OrbitControls(camera, canvas);
@@ -145,22 +372,22 @@
   controls.dampingFactor = 0.08;
   controls.enablePan = false;
   controls.minDistance = 3.5;
-  controls.maxDistance = 8;
+  controls.maxDistance = 9;
   controls.minPolarAngle = Math.PI * 0.2;
   controls.maxPolarAngle = Math.PI * 0.8;
   controls.rotateSpeed = 0.7;
 
-  // ---------- 自动旋转 + 交互暂停 ----------
-  let autoRotate = true;
-  let idleTimer = null;
+  // ---------- 交互时暂停随机动作 ----------
+  let userInteracting = false;
+  let interactionTimer = null;
 
-  function pauseAuto() {
-    autoRotate = false;
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => { autoRotate = true; }, 3000);
+  function onInteract() {
+    userInteracting = true;
+    clearTimeout(interactionTimer);
+    interactionTimer = setTimeout(() => { userInteracting = false; }, 4000);
   }
-  canvas.addEventListener('pointerdown', pauseAuto);
-  canvas.addEventListener('wheel', pauseAuto, { passive: true });
+  canvas.addEventListener('pointerdown', onInteract);
+  canvas.addEventListener('wheel', onInteract, { passive: true });
 
   // ---------- 响应式 ----------
   function resize() {
@@ -179,9 +406,26 @@
   // ---------- 渲染循环 ----------
   function animate() {
     requestAnimationFrame(animate);
-    if (autoRotate) {
-      cube.rotation.y += 0.004;
+    const time = Date.now();
+
+    if (!userInteracting) {
+      updateAction(time);
+    } else {
+      // 交互时保持基础呼吸
+      const breathe = Math.sin(time * 0.002) * 0.02;
+      mascot.scale.set(1 + breathe, 1 - breathe * 0.5, 1 + breathe);
+      scarfTail.rotation.z = -0.3 + Math.sin(time * 0.003) * 0.15;
+      tail.rotation.x = -Math.PI / 2.5 + Math.sin(time * 0.004) * 0.2;
     }
+
+    // 粒子漂浮
+    particles.children.forEach((p, i) => {
+      p.position.y += p.userData.speed;
+      p.position.x += Math.sin(time * 0.001 + p.userData.offset) * 0.002;
+      if (p.position.y > 2.5) p.position.y = -2.5;
+      p.material.opacity = 0.3 + Math.sin(time * 0.003 + p.userData.offset) * 0.3;
+    });
+
     controls.update();
     renderer.render(scene, camera);
   }
