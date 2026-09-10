@@ -102,6 +102,7 @@ async function init() {
   setupHeroParallax();
   setupScrollEffects();
   initTheme();
+  initMascotAnimation();
   await loadMode();
   await loadScenarios();
   loadHistory();
@@ -1323,6 +1324,71 @@ function closeAgentInfoModal() {
     modal.hidden = true;
     document.body.style.overflow = '';
   }
+}
+
+/* ---------- 顶部刘看山3D随机动画 ---------- */
+function initMascotAnimation() {
+  const mascot = document.querySelector('.brand-mascot');
+  if (!mascot) return;
+
+  const animations = ['anim-swing', 'anim-bounce', 'anim-spin', 'anim-pulse', 'anim-tilt3d', 'anim-wink'];
+  const messages = [
+    '你好呀！我是刘看山 🦊',
+    '欢迎来到知遇！',
+    '点击我试试？',
+    '今天想学点什么？',
+    '知遇，与新知相遇 ✨',
+    '我会随机做动作哦～',
+    '拖拽下方3D模型可以旋转我！',
+  ];
+
+  // 随机触发动画
+  function randomAnimate() {
+    const anim = animations[Math.floor(Math.random() * animations.length)];
+    mascot.classList.remove(...animations);
+    // 强制重排以重启动画
+    void mascot.offsetWidth;
+    mascot.classList.add(anim);
+    setTimeout(() => mascot.classList.remove(anim), 1000);
+  }
+
+  // 每3-6秒随机触发一次
+  function scheduleNext() {
+    const delay = 3000 + Math.random() * 3000;
+    setTimeout(() => {
+      randomAnimate();
+      scheduleNext();
+    }, delay);
+  }
+  scheduleNext();
+
+  // 点击时触发随机动画 + 显示提示
+  let tooltip = null;
+  mascot.addEventListener('click', (e) => {
+    e.preventDefault();
+    randomAnimate();
+    // 显示随机提示
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.className = 'brand-mascot-tooltip';
+      document.querySelector('.brand').style.position = 'relative';
+      document.querySelector('.brand').appendChild(tooltip);
+    }
+    tooltip.textContent = messages[Math.floor(Math.random() * messages.length)];
+    tooltip.classList.add('show');
+    setTimeout(() => tooltip.classList.remove('show'), 2000);
+  });
+
+  // 鼠标悬停时轻微3D倾斜
+  mascot.addEventListener('mousemove', (e) => {
+    const rect = mascot.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    mascot.style.transform = `rotateY(${x * 25}deg) rotateX(${-y * 25}deg) scale(1.1)`;
+  });
+  mascot.addEventListener('mouseleave', () => {
+    mascot.style.transform = '';
+  });
 }
 
 /* ---------- 分享图生成 ---------- */
