@@ -7,6 +7,7 @@
   <meta name="description" content="知遇 —— 基于知乎知识生态的 AI 新人引路助手。多 Agent 协作完成资料整理、观点对照与知识梳理。" />
   <link rel="icon" href="/assets/icon.png" type="image/png" />
   <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/dark-mode.css" />
   <!-- Three.js 3D 引擎 -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -26,6 +27,7 @@
       <div class="nav-links">
         <a href="#how">多Agent机制</a>
         <a href="#about">关于我们</a>
+        <button class="theme-toggle" id="themeToggle" title="切换深色/浅色模式">🌙 深色</button>
         <span class="mode-badge" id="modeBadge">模式检测中…</span>
       </div>
     </div>
@@ -165,6 +167,7 @@
       <div class="result-toolbar" id="resultToolbar">
         <button class="tool-btn" id="exportMdBtn" title="导出为 Markdown">📝 导出 Markdown</button>
         <button class="tool-btn" id="copyMdBtn" title="复制 Markdown 到剪贴板">📋 复制内容</button>
+        <button class="tool-btn" id="shareImgBtn" title="生成分享图">🖼️ 分享图</button>
         <button class="tool-btn" id="favoriteBtn" title="收藏这个引路">⭐ 收藏</button>
         <span class="tool-spacer"></span>
         <span class="tool-hint" id="toolHint"></span>
@@ -510,6 +513,22 @@
       <div class="modal-foot">
         <button class="tool-btn" id="copyExportBtn">📋 复制到剪贴板</button>
         <button class="tool-btn" id="downloadExportBtn">💾 下载 .md 文件</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分享图弹窗 -->
+  <div class="modal-mask" id="shareModal" hidden>
+    <div class="modal modal-wide">
+      <div class="modal-head">
+        <span class="modal-title">🖼️ 生成分享图</span>
+        <button class="modal-close" id="shareModalClose">✕</button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <canvas id="shareCanvas" width="800" height="1000" style="max-width:100%;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.15);"></canvas>
+      </div>
+      <div class="modal-foot">
+        <button class="tool-btn" id="downloadShareBtn">💾 下载图片</button>
       </div>
     </div>
   </div>

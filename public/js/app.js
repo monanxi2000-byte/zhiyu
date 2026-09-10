@@ -101,6 +101,7 @@ async function init() {
   setupTilt();
   setupHeroParallax();
   setupScrollEffects();
+  initTheme();
   await loadMode();
   await loadScenarios();
   loadHistory();
@@ -334,6 +335,12 @@ function bindEvents() {
   if (copyMdBtn) copyMdBtn.addEventListener('click', () => copyMarkdownToClipboard());
   const favoriteBtn = $('#favoriteBtn');
   if (favoriteBtn) favoriteBtn.addEventListener('click', toggleFavorite);
+  const shareImgBtn = $('#shareImgBtn');
+  if (shareImgBtn) shareImgBtn.addEventListener('click', () => generateShareImage());
+
+  // 深色模式切换
+  const themeToggle = $('#themeToggle');
+  if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
 
   // 导出弹窗
   const exportModalClose = $('#exportModalClose');
@@ -352,6 +359,18 @@ function bindEvents() {
   });
   const downloadExportBtn = $('#downloadExportBtn');
   if (downloadExportBtn) downloadExportBtn.addEventListener('click', downloadMarkdown);
+
+  // 分享图弹窗
+  const shareModalClose = $('#shareModalClose');
+  if (shareModalClose) shareModalClose.addEventListener('click', closeShareModal);
+  const shareModal = $('#shareModal');
+  if (shareModal) {
+    shareModal.addEventListener('click', (e) => {
+      if (e.target.id === 'shareModal') closeShareModal();
+    });
+  }
+  const downloadShareBtn = $('#downloadShareBtn');
+  if (downloadShareBtn) downloadShareBtn.addEventListener('click', downloadShareImage);
 
   // 键盘快捷键
   document.addEventListener('keydown', (e) => {
@@ -1205,23 +1224,36 @@ function submitAsk() {
       btn.disabled = false;
       btn.textContent = '提问';
       if (!d.ok) throw new Error(d.message || '提问失败');
-      const item = el('div', 'ask-answer-item');
-      const q = el('div', 'ask-answer-q', `💬 ${esc(question)}`);
-      const a = el('div', 'ask-answer-a');
-      a.innerHTML = renderMarkdown(d.data.answer);
-      item.appendChild(q);
-      item.appendChild(a);
-      answersBox.appendChild(item);
-      item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // 用户消息气泡（右侧）
+      const userMsg = el('div', 'chat-msg user-msg');
+      userMsg.innerHTML = `<div class="chat-bubble user-bubble">${esc(question)}</div>`;
+      answersBox.appendChild(userMsg);
+      // AI回答气泡（左侧）
+      const aiMsg = el('div', 'chat-msg ai-msg');
+      const avatar = el('div', 'chat-avatar', '🦊');
+      const bubble = el('div', 'chat-bubble ai-bubble');
+      bubble.innerHTML = renderMarkdown(d.data.answer);
+      aiMsg.appendChild(avatar);
+      aiMsg.appendChild(bubble);
+      answersBox.appendChild(aiMsg);
+      aiMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     })
     .catch((err) => {
       loading.remove();
       btn.disabled = false;
       btn.textContent = '提问';
-      const item = el('div', 'ask-answer-item');
-      item.style.borderColor = '#ffccc7';
-      item.innerHTML = `<div class="ask-answer-q">💬 ${esc(question)}</div><div class="ask-answer-a" style="color:#cf1322">提问失败：${esc(err.message)}</div>`;
-      answersBox.appendChild(item);
+      // 用户消息
+      const userMsg = el('div', 'chat-msg user-msg');
+      userMsg.innerHTML = `<div class="chat-bubble user-bubble">${esc(question)}</div>`;
+      answersBox.appendChild(userMsg);
+      // AI错误消息
+      const aiMsg = el('div', 'chat-msg ai-msg');
+      const avatar = el('div', 'chat-avatar', '🦊');
+      const bubble = el('div', 'chat-bubble ai-bubble error-bubble');
+      bubble.innerHTML = `提问失败：${esc(err.message)}`;
+      aiMsg.appendChild(avatar);
+      aiMsg.appendChild(bubble);
+      answersBox.appendChild(aiMsg);
     });
 }
 
@@ -1236,6 +1268,197 @@ function renderMarkdown(text) {
   html = html.replace(/\n{2,}/g, '</p><p>');
   html = html.replace(/\n/g, '<br>');
   return `<p>${html}</p>`;
+}
+
+/* ---------- 深色模式 ---------- */
+function initTheme() {
+  let saved = 'light';
+  try { saved = localStorage.getItem('zhiyu_theme') || 'light'; } catch { saved = 'light'; }
+  if (saved === 'dark') {
+    document.body.classList.add('dark-mode');
+    updateThemeButton(true);
+  } else {
+    updateThemeButton(false);
+  }
+}
+
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark-mode');
+  try { localStorage.setItem('zhiyu_theme', isDark ? 'dark' : 'light'); } catch { /* ignore */ }
+  updateThemeButton(isDark);
+}
+
+function updateThemeButton(isDark) {
+  const btn = $('#themeToggle');
+  if (btn) btn.textContent = isDark ? '☀️ 浅色' : '🌙 深色';
+}
+
+/* ---------- 分享图生成 ---------- */
+function generateShareImage() {
+  const r = state.currentResult;
+  if (!r) return;
+  const canvas = $('#shareCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = 800, H = 1000;
+
+  // 背景渐变
+  const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+  bgGrad.addColorStop(0, '#1e1b4b');
+  bgGrad.addColorStop(0.5, '#312e81');
+  bgGrad.addColorStop(1, '#1e1b4b');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 装饰圆圈
+  ctx.globalAlpha = 0.1;
+  ctx.fillStyle = '#818cf8';
+  ctx.beginPath();
+  ctx.arc(100, 100, 150, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(700, 900, 200, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // 顶部标签
+  ctx.fillStyle = 'rgba(129,140,248,0.2)';
+  roundRect(ctx, 60, 60, 200, 40, 20);
+  ctx.fill();
+  ctx.fillStyle = '#a5b4fc';
+  ctx.font = '16px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('知遇 ZhiYu · AI 引路', 160, 86);
+
+  // 主标题
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 42px sans-serif';
+  ctx.textAlign = 'left';
+  const title = `「${r.meta.topic}」`;
+  ctx.fillText(title, 60, 170);
+  ctx.fillStyle = '#c7d2fe';
+  ctx.font = '24px sans-serif';
+  ctx.fillText('入门学习指南', 60, 215);
+
+  // 分割线
+  ctx.strokeStyle = 'rgba(129,140,248,0.3)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(60, 250);
+  ctx.lineTo(740, 250);
+  ctx.stroke();
+
+  // 数据统计卡片
+  const stages = (r.studyPlan?.stages || []).length;
+  const concepts = (r.studyPlan?.concepts || []).length;
+  const cards = (r.studyPlan?.flashcards || []).length;
+  const stats = [
+    { num: stages, label: '学习阶段', icon: '🗺️' },
+    { num: concepts, label: '核心概念', icon: '💡' },
+    { num: cards, label: '复习卡片', icon: '🃏' },
+  ];
+  stats.forEach((s, i) => {
+    const x = 60 + i * 240;
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    roundRect(ctx, x, 280, 220, 120, 16);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(s.num, x + 110, 335);
+    ctx.fillStyle = '#a5b4fc';
+    ctx.font = '16px sans-serif';
+    ctx.fillText(`${s.icon} ${s.label}`, x + 110, 370);
+  });
+
+  // 学习路径预览
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('📚 学习路径', 60, 450);
+
+  const pathStages = (r.studyPlan?.stages || []).slice(0, 4);
+  pathStages.forEach((s, i) => {
+    const y = 490 + i * 70;
+    // 序号圆
+    ctx.fillStyle = '#6366f1';
+    ctx.beginPath();
+    ctx.arc(85, y, 22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(s.order, 85, y + 6);
+    // 标题
+    ctx.fillStyle = '#e0e7ff';
+    ctx.font = '18px sans-serif';
+    ctx.textAlign = 'left';
+    const titleText = s.title.length > 25 ? s.title.substring(0, 25) + '...' : s.title;
+    ctx.fillText(titleText, 125, y + 6);
+    // 连接线
+    if (i < pathStages.length - 1) {
+      ctx.strokeStyle = 'rgba(99,102,241,0.4)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(85, y + 25);
+      ctx.lineTo(85, y + 50);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  });
+
+  // 底部信息
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  roundRect(ctx, 60, 880, 680, 80, 16);
+  ctx.fill();
+  ctx.fillStyle = '#a5b4fc';
+  ctx.font = '16px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('由三个 AI Agent 协作完成 · 资料整理 → 观点对照 → 知识梳理', 400, 915);
+  ctx.fillStyle = '#6366f1';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillText('知乎黑客松 2026 · 队伍「邂逅」 · 知遇 ZhiYu', 400, 945);
+
+  // 显示弹窗
+  const modal = $('#shareModal');
+  if (modal) {
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function closeShareModal() {
+  const modal = $('#shareModal');
+  if (modal) {
+    modal.hidden = true;
+    document.body.style.overflow = '';
+  }
+}
+
+function downloadShareImage() {
+  const canvas = $('#shareCanvas');
+  if (!canvas) return;
+  const topic = (state.currentTopic || 'zhiyu').replace(/[\\/:*?"<>|]/g, '_');
+  const link = document.createElement('a');
+  link.download = `${topic}-知遇分享图.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToolHint('分享图已下载');
 }
 
 /* ---------- 启动 ---------- */
