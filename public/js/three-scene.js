@@ -54,9 +54,10 @@
 
   // 身体（圆角胶囊形状，用圆柱体+球体组合）
   const bodyGroup = new THREE.Group();
-  const bodyGeo = new THREE.CapsuleGeometry(0.7, 0.9, 8, 16);
+  const bodyGeo = new THREE.SphereGeometry(0.7, 16, 16);
   const body = new THREE.Mesh(bodyGeo, whiteMat);
   body.position.y = 0.2;
+  body.scale.set(1, 1.4, 1);
   body.castShadow = true;
   bodyGroup.add(body);
 
@@ -143,29 +144,33 @@
 
   mascot.add(headGroup);
 
-  // 手臂（两个小圆柱体，可动）
+  // 手臂（两个小球体缩放，可动）
   const armGroup = new THREE.Group();
-  const armGeo = new THREE.CapsuleGeometry(0.12, 0.4, 6, 8);
+  const armGeo = new THREE.SphereGeometry(0.12, 8, 8);
   const leftArm = new THREE.Mesh(armGeo, whiteMat);
   leftArm.position.set(-0.85, 0.4, 0);
   leftArm.rotation.z = 0.5;
+  leftArm.scale.set(1, 2.5, 1);
   leftArm.castShadow = true;
   armGroup.add(leftArm);
   const rightArm = new THREE.Mesh(armGeo, whiteMat);
   rightArm.position.set(0.85, 0.4, 0);
   rightArm.rotation.z = -0.5;
+  rightArm.scale.set(1, 2.5, 1);
   rightArm.castShadow = true;
   armGroup.add(rightArm);
   mascot.add(armGroup);
 
-  // 腿（两个短圆柱体）
-  const legGeo = new THREE.CapsuleGeometry(0.15, 0.25, 6, 8);
+  // 腿（两个短球体缩放）
+  const legGeo = new THREE.SphereGeometry(0.15, 8, 8);
   const leftLeg = new THREE.Mesh(legGeo, whiteMat);
   leftLeg.position.set(-0.3, -0.6, 0);
+  leftLeg.scale.set(1, 1.8, 1);
   leftLeg.castShadow = true;
   mascot.add(leftLeg);
   const rightLeg = new THREE.Mesh(legGeo, whiteMat);
   rightLeg.position.set(0.3, -0.6, 0);
+  rightLeg.scale.set(1, 1.8, 1);
   rightLeg.castShadow = true;
   mascot.add(rightLeg);
 
