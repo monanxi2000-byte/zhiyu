@@ -1,24 +1,23 @@
 #!/bin/bash
 # 知遇 ZhiYu 启动脚本
-# 1. 先运行 CLI 安装脚本（确保 zhihu-cli 存在）
-# 2. 设置环境变量
-# 3. 启动服务器
+# CLI 已内置在 bin/zhihu-cli（Linux amd64），直接使用
 
-echo "[zhiyu] 启动前检查 zhihu-cli..."
-
-# 运行 CLI 安装脚本（Node.js 跨平台，自动检测已存在则跳过）
-node scripts/install-cli.js
-
-# 查找项目目录下的 zhihu-cli
-CLI_BIN="$(pwd)/.zhihu-cli/zhihu-cli"
+# 设置 CLI 路径（优先使用项目内置的 Linux 版 CLI）
+CLI_BIN="$(pwd)/bin/zhihu-cli"
 
 if [ -f "$CLI_BIN" ]; then
+  chmod +x "$CLI_BIN" 2>/dev/null
   export ZHIHU_CLI_PATH="$CLI_BIN"
-  echo "[zhiyu] ✅ zhihu-cli 已就绪: $CLI_BIN"
+  echo "[zhiyu] ✅ 使用项目内置 zhihu-cli: $CLI_BIN"
 else
-  echo "[zhiyu] ⚠️ 未找到 .zhihu-cli/zhihu-cli，知乎实时模式将不可用"
-  echo "[zhiyu] 当前目录: $(pwd)"
-  ls -la "$(pwd)/.zhihu-cli/" 2>/dev/null || echo "[zhiyu] .zhihu-cli 目录不存在"
+  echo "[zhiyu] ⚠️ 未找到 bin/zhihu-cli，尝试其他路径..."
+  # 回退到 .zhihu-cli 目录
+  ALT_CLI="$(pwd)/.zhihu-cli/zhihu-cli"
+  if [ -f "$ALT_CLI" ]; then
+    chmod +x "$ALT_CLI" 2>/dev/null
+    export ZHIHU_CLI_PATH="$ALT_CLI"
+    echo "[zhiyu] ✅ 使用 .zhihu-cli/zhihu-cli: $ALT_CLI"
+  fi
 fi
 
 # 启动服务器
