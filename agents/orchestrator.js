@@ -26,9 +26,12 @@ const curator = require('./curator');
 async function runPipeline(topic, { emit } = {}) {
   const noop = () => {};
   const emitFn = typeof emit === 'function' ? emit : noop;
-  const ctx = { emit: (agent, stage, message) => emitFn('log', agent, stage, message) };
 
   const live = await zhihu.isLive();
+  const ctx = {
+    live,
+    emit: (agent, stage, message) => emitFn('log', agent, stage, message),
+  };
   const scenario = matchScenario(topic);
   const t0 = Date.now();
 
