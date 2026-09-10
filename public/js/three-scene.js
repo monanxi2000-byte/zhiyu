@@ -1,6 +1,6 @@
 /* ============================================================
-   知遇 ZhiYu · 3D 可拖拽展示区 v2
-   立体刘看山3D模型（多几何体组合）+ 随机动作动画
+   知遇 ZhiYu · 3D 可拖拽展示区 v3
+   Blender建模刘看山3D模型（GLTFLoader加载）+ 随机动作动画
    交互：鼠标拖拽旋转、滚轮缩放、自动随机动作
    ============================================================ */
 
@@ -13,7 +13,7 @@
   // ---------- 场景 / 相机 / 渲染器 ----------
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-  camera.position.set(0, 0.8, 5.5);
+  camera.position.set(0, 0.5, 4.5);
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -26,9 +26,9 @@
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   // ---------- 光照 ----------
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.7);
   scene.add(ambient);
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
   dirLight.position.set(5, 8, 5);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 1024;
@@ -41,334 +41,298 @@
   rimLight.position.set(0, -3, -5);
   scene.add(rimLight);
 
-  // ---------- 材质 ----------
-  const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.5, metalness: 0.05 });
-  const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4 });
-  const blueMat = new THREE.MeshStandardMaterial({ color: 0x0084FF, roughness: 0.3, metalness: 0.2 });
-  const orangeMat = new THREE.MeshStandardMaterial({ color: 0xFF6B35, roughness: 0.5 });
-  const pinkMat = new THREE.MeshStandardMaterial({ color: 0xffb6c1, roughness: 0.6 });
+  // ---------- 模型部件引用 ----------
+  let mascot = null;
+  let head = null;
+  let leftArm = null;
+  let rightArm = null;
+  let leftEye = null;
+  let rightEye = null;
+  let scarfTail = null;
+  let tail = null;
+  let baseRing = null;
+  let baseInner = null;
+  let modelLoaded = false;
 
-  // ---------- 创建立体刘看山3D模型 ----------
-  const mascot = new THREE.Group();
-  scene.add(mascot);
+  // ---------- 加载Blender GLB模型 ----------
+  const loader = new THREE.GLTFLoader();
+  loader.load(
+    '/assets/models/kanshan.glb',
+    function (gltf) {
+      const model = gltf.scene;
+      model.traverse(function (child) {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
 
-  // 身体（圆角胶囊形状，用圆柱体+球体组合）
-  const bodyGroup = new THREE.Group();
-  const bodyGeo = new THREE.SphereGeometry(0.7, 16, 16);
-  const body = new THREE.Mesh(bodyGeo, whiteMat);
-  body.position.y = 0.2;
-  body.scale.set(1, 1.4, 1);
-  body.castShadow = true;
-  bodyGroup.add(body);
+      // 找到Kanshan根对象
+      mascot = model.getObjectByName('Kanshan') || model;
+      scene.add(mascot);
 
-  // 肚子（稍大的白色球体，营造圆润感）
-  const bellyGeo = new THREE.SphereGeometry(0.55, 16, 16);
-  const belly = new THREE.Mesh(bellyGeo, whiteMat);
-  belly.position.set(0, 0.1, 0.35);
-  belly.scale.set(1, 1.1, 0.6);
-  bodyGroup.add(belly);
-  mascot.add(bodyGroup);
+      // 找到各个部件
+      head = mascot.getObjectByName('Head');
+      leftArm = mascot.getObjectByName('LeftArm');
+      rightArm = mascot.getObjectByName('RightArm');
+      leftEye = mascot.getObjectByName('LeftEye');
+      rightEye = mascot.getObjectByName('RightEye');
+      scarfTail = mascot.getObjectByName('ScarfTail');
+      tail = mascot.getObjectByName('Tail');
+      baseRing = mascot.getObjectByName('BaseRing');
+      baseInner = mascot.getObjectByName('BaseInner');
 
-  // 头（球体，稍大）
-  const headGroup = new THREE.Group();
-  const headGeo = new THREE.SphereGeometry(0.65, 24, 24);
-  const head = new THREE.Mesh(headGeo, whiteMat);
-  head.position.y = 1.35;
-  head.castShadow = true;
-  headGroup.add(head);
+      // 调整模型位置和大小
+      mascot.position.y = -0.3;
+      mascot.scale.set(0.85, 0.85, 0.85);
 
-  // 耳朵（两个三角形，用圆锥体）
-  const earGeo = new THREE.ConeGeometry(0.2, 0.45, 4);
-  const leftEar = new THREE.Mesh(earGeo, whiteMat);
-  leftEar.position.set(-0.4, 1.85, 0);
-  leftEar.rotation.z = 0.3;
-  leftEar.rotation.y = -0.2;
-  headGroup.add(leftEar);
-  const rightEar = new THREE.Mesh(earGeo, whiteMat);
-  rightEar.position.set(0.4, 1.85, 0);
-  rightEar.rotation.z = -0.3;
-  rightEar.rotation.y = 0.2;
-  headGroup.add(rightEar);
+      modelLoaded = true;
+      console.log('刘看山3D模型加载成功');
+    },
+    function (xhr) {
+      // 加载进度
+      if (xhr.total > 0) {
+        console.log('模型加载中: ' + Math.round(xhr.loaded / xhr.total * 100) + '%');
+      }
+    },
+    function (error) {
+      console.error('模型加载失败，使用备用几何体:', error);
+      createFallbackMascot();
+    }
+  );
 
-  // 耳朵内侧（粉色小三角）
-  const innerEarGeo = new THREE.ConeGeometry(0.1, 0.25, 4);
-  const leftInnerEar = new THREE.Mesh(innerEarGeo, pinkMat);
-  leftInnerEar.position.set(-0.4, 1.82, 0.08);
-  leftInnerEar.rotation.z = 0.3;
-  headGroup.add(leftInnerEar);
-  const rightInnerEar = new THREE.Mesh(innerEarGeo, pinkMat);
-  rightInnerEar.position.set(0.4, 1.82, 0.08);
-  rightInnerEar.rotation.z = -0.3;
-  headGroup.add(rightInnerEar);
+  // ---------- 备用模型（代码拼接几何体，GLB加载失败时使用） ----------
+  function createFallbackMascot() {
+    mascot = new THREE.Group();
+    scene.add(mascot);
 
-  // 眼睛（两个黑色球体，带高光）
-  const eyeGeo = new THREE.SphereGeometry(0.09, 12, 12);
-  const leftEye = new THREE.Mesh(eyeGeo, darkMat);
-  leftEye.position.set(-0.22, 1.4, 0.55);
-  headGroup.add(leftEye);
-  const rightEye = new THREE.Mesh(eyeGeo, darkMat);
-  rightEye.position.set(0.22, 1.4, 0.55);
-  headGroup.add(rightEye);
+    const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.5, metalness: 0.05 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4 });
+    const blueMat = new THREE.MeshStandardMaterial({ color: 0x0084FF, roughness: 0.3, metalness: 0.2 });
+    const pinkMat = new THREE.MeshStandardMaterial({ color: 0xffb6c1, roughness: 0.6 });
 
-  // 眼睛高光（小白点）
-  const eyeHighlightGeo = new THREE.SphereGeometry(0.03, 8, 8);
-  const eyeHighlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const leftHighlight = new THREE.Mesh(eyeHighlightGeo, eyeHighlightMat);
-  leftHighlight.position.set(-0.19, 1.43, 0.62);
-  headGroup.add(leftHighlight);
-  const rightHighlight = new THREE.Mesh(eyeHighlightGeo, eyeHighlightMat);
-  rightHighlight.position.set(0.25, 1.43, 0.62);
-  headGroup.add(rightHighlight);
+    // 身体
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), whiteMat);
+    body.position.y = 0.2;
+    body.scale.set(1, 1.4, 1);
+    body.castShadow = true;
+    mascot.add(body);
 
-  // 鼻子（黑色大球体，刘看山标志性大鼻子）
-  const noseGeo = new THREE.SphereGeometry(0.16, 16, 16);
-  const nose = new THREE.Mesh(noseGeo, darkMat);
-  nose.position.set(0, 1.22, 0.6);
-  headGroup.add(nose);
+    // 头
+    head = new THREE.Mesh(new THREE.SphereGeometry(0.65, 24, 24), whiteMat);
+    head.position.y = 1.35;
+    head.castShadow = true;
+    mascot.add(head);
 
-  // 鼻子高光
-  const noseHighlight = new THREE.Mesh(eyeHighlightGeo, eyeHighlightMat);
-  noseHighlight.position.set(0.05, 1.27, 0.72);
-  noseHighlight.scale.set(1.5, 1.5, 1.5);
-  headGroup.add(noseHighlight);
+    // 耳朵
+    const earGeo = new THREE.ConeGeometry(0.2, 0.45, 4);
+    const leftEar = new THREE.Mesh(earGeo, whiteMat);
+    leftEar.position.set(-0.4, 1.85, 0);
+    leftEar.rotation.z = 0.3;
+    mascot.add(leftEar);
+    const rightEar = new THREE.Mesh(earGeo, whiteMat);
+    rightEar.position.set(0.4, 1.85, 0);
+    rightEar.rotation.z = -0.3;
+    mascot.add(rightEar);
 
-  // 腮红（两个粉色圆片）
-  const blushGeo = new THREE.CircleGeometry(0.1, 16);
-  const blushMat = new THREE.MeshBasicMaterial({ color: 0xffb6c1, transparent: true, opacity: 0.5 });
-  const leftBlush = new THREE.Mesh(blushGeo, blushMat);
-  leftBlush.position.set(-0.42, 1.2, 0.5);
-  headGroup.add(leftBlush);
-  const rightBlush = new THREE.Mesh(blushGeo, blushMat);
-  rightBlush.position.set(0.42, 1.2, 0.5);
-  headGroup.add(rightBlush);
+    // 眼睛
+    const eyeGeo = new THREE.SphereGeometry(0.09, 12, 12);
+    leftEye = new THREE.Mesh(eyeGeo, darkMat);
+    leftEye.position.set(-0.22, 1.4, 0.55);
+    mascot.add(leftEye);
+    rightEye = new THREE.Mesh(eyeGeo, darkMat);
+    rightEye.position.set(0.22, 1.4, 0.55);
+    mascot.add(rightEye);
 
-  mascot.add(headGroup);
+    // 鼻子
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 12), darkMat);
+    nose.position.set(0, 1.28, 0.6);
+    nose.scale.set(1.2, 0.9, 0.8);
+    mascot.add(nose);
 
-  // 手臂（两个小球体缩放，可动）
-  const armGroup = new THREE.Group();
-  const armGeo = new THREE.SphereGeometry(0.12, 8, 8);
-  const leftArm = new THREE.Mesh(armGeo, whiteMat);
-  leftArm.position.set(-0.85, 0.4, 0);
-  leftArm.rotation.z = 0.5;
-  leftArm.scale.set(1, 2.5, 1);
-  leftArm.castShadow = true;
-  armGroup.add(leftArm);
-  const rightArm = new THREE.Mesh(armGeo, whiteMat);
-  rightArm.position.set(0.85, 0.4, 0);
-  rightArm.rotation.z = -0.5;
-  rightArm.scale.set(1, 2.5, 1);
-  rightArm.castShadow = true;
-  armGroup.add(rightArm);
-  mascot.add(armGroup);
+    // 围巾
+    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.1, 8, 20), blueMat);
+    scarf.position.y = 0.6;
+    scarf.rotation.x = Math.PI / 2;
+    mascot.add(scarf);
+    scarfTail = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.3, 0.04), blueMat);
+    scarfTail.position.set(0.3, 0.3, 0.3);
+    scarfTail.rotation.z = -0.3;
+    mascot.add(scarfTail);
 
-  // 腿（两个短球体缩放）
-  const legGeo = new THREE.SphereGeometry(0.15, 8, 8);
-  const leftLeg = new THREE.Mesh(legGeo, whiteMat);
-  leftLeg.position.set(-0.3, -0.6, 0);
-  leftLeg.scale.set(1, 1.8, 1);
-  leftLeg.castShadow = true;
-  mascot.add(leftLeg);
-  const rightLeg = new THREE.Mesh(legGeo, whiteMat);
-  rightLeg.position.set(0.3, -0.6, 0);
-  rightLeg.scale.set(1, 1.8, 1);
-  rightLeg.castShadow = true;
-  mascot.add(rightLeg);
+    // 手臂
+    const armGeo = new THREE.SphereGeometry(0.12, 8, 8);
+    leftArm = new THREE.Mesh(armGeo, whiteMat);
+    leftArm.position.set(-0.85, 0.4, 0);
+    leftArm.scale.set(1, 2.5, 1);
+    leftArm.rotation.z = 0.5;
+    mascot.add(leftArm);
+    rightArm = new THREE.Mesh(armGeo, whiteMat);
+    rightArm.position.set(0.85, 0.4, 0);
+    rightArm.scale.set(1, 2.5, 1);
+    rightArm.rotation.z = -0.5;
+    mascot.add(rightArm);
 
-  // 脚（两个黑色小圆片）
-  const footGeo = new THREE.SphereGeometry(0.18, 12, 12);
-  const leftFoot = new THREE.Mesh(footGeo, darkMat);
-  leftFoot.position.set(-0.3, -0.85, 0.1);
-  leftFoot.scale.set(1, 0.5, 1.3);
-  mascot.add(leftFoot);
-  const rightFoot = new THREE.Mesh(footGeo, darkMat);
-  rightFoot.position.set(0.3, -0.85, 0.1);
-  rightFoot.scale.set(1, 0.5, 1.3);
-  mascot.add(rightFoot);
+    // 腿
+    const legGeo = new THREE.SphereGeometry(0.15, 8, 8);
+    const leftLeg = new THREE.Mesh(legGeo, whiteMat);
+    leftLeg.position.set(-0.3, -0.6, 0);
+    leftLeg.scale.set(1, 1.8, 1);
+    mascot.add(leftLeg);
+    const rightLeg = new THREE.Mesh(legGeo, whiteMat);
+    rightLeg.position.set(0.3, -0.6, 0);
+    rightLeg.scale.set(1, 1.8, 1);
+    mascot.add(rightLeg);
 
-  // 尾巴（小圆锥，刘看山的尾巴）
-  const tailGeo = new THREE.ConeGeometry(0.15, 0.4, 8);
-  const tail = new THREE.Mesh(tailGeo, whiteMat);
-  tail.position.set(0, 0.3, -0.75);
-  tail.rotation.x = -Math.PI / 2.5;
-  mascot.add(tail);
+    // 底座发光环
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0x0084ff, transparent: true, opacity: 0.2 });
+    baseRing = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.04, 8, 30), glowMat);
+    baseRing.position.y = -0.95;
+    baseRing.rotation.x = Math.PI / 2;
+    mascot.add(baseRing);
+    baseInner = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.03, 8, 30), glowMat.clone());
+    baseInner.position.y = -0.95;
+    baseInner.rotation.x = Math.PI / 2;
+    mascot.add(baseInner);
 
-  // 围巾（蓝色圆环，增加辨识度）
-  const scarfGeo = new THREE.TorusGeometry(0.6, 0.08, 8, 24);
-  const scarf = new THREE.Mesh(scarfGeo, blueMat);
-  scarf.position.set(0, 0.85, 0);
-  scarf.rotation.x = Math.PI / 2;
-  mascot.add(scarf);
+    modelLoaded = true;
+    console.log('使用备用几何体模型');
+  }
 
-  // 围巾飘带
-  const scarfTailGeo = new THREE.BoxGeometry(0.15, 0.4, 0.05);
-  const scarfTail = new THREE.Mesh(scarfTailGeo, blueMat);
-  scarfTail.position.set(0.35, 0.65, 0.4);
-  scarfTail.rotation.z = -0.3;
-  mascot.add(scarfTail);
-
-  // 底座（发光圆环）
-  const baseGeo = new THREE.TorusGeometry(1.2, 0.05, 8, 32);
-  const baseMat = new THREE.MeshBasicMaterial({ color: 0x0084FF, transparent: true, opacity: 0.3 });
-  const base = new THREE.Mesh(baseGeo, baseMat);
-  base.position.y = -1;
-  base.rotation.x = Math.PI / 2;
-  scene.add(base);
-
-  // 底座内圈
-  const baseInnerGeo = new THREE.TorusGeometry(0.9, 0.03, 8, 32);
-  const baseInnerMat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.2 });
-  const baseInner = new THREE.Mesh(baseInnerGeo, baseInnerMat);
-  baseInner.position.y = -0.98;
-  baseInner.rotation.x = Math.PI / 2;
-  scene.add(baseInner);
-
-  // 漂浮粒子（装饰）
+  // ---------- 漂浮粒子 ----------
   const particles = new THREE.Group();
+  scene.add(particles);
   const particleGeo = new THREE.SphereGeometry(0.03, 6, 6);
-  const particleMat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.6 });
+  const particleMat = new THREE.MeshBasicMaterial({ color: 0x9b59ff, transparent: true, opacity: 0.5 });
   for (let i = 0; i < 20; i++) {
-    const p = new THREE.Mesh(particleGeo, particleMat);
+    const p = new THREE.Mesh(particleGeo, particleMat.clone());
     p.position.set(
-      (Math.random() - 0.5) * 4,
-      (Math.random() - 0.5) * 4,
-      (Math.random() - 0.5) * 2 - 1
+      (Math.random() - 0.5) * 3,
+      Math.random() * 4 - 1,
+      (Math.random() - 0.5) * 2
     );
-    p.userData.speed = 0.002 + Math.random() * 0.005;
-    p.userData.offset = Math.random() * Math.PI * 2;
+    p.userData = {
+      speed: 0.003 + Math.random() * 0.005,
+      offset: Math.random() * Math.PI * 2,
+    };
     particles.add(p);
   }
-  scene.add(particles);
 
   // ---------- 随机动作系统 ----------
-  const actions = [
-    { name: 'idle', duration: 2000 },
-    { name: 'wave', duration: 1500 },
-    { name: 'nod', duration: 1200 },
-    { name: 'shake', duration: 1000 },
-    { name: 'jump', duration: 800 },
-    { name: 'tilt', duration: 1500 },
-    { name: 'spin', duration: 2000 },
-    { name: 'blink', duration: 400 },
-  ];
-
+  const actions = ['idle', 'wave', 'nod', 'shake', 'jump', 'tilt', 'spin', 'blink'];
   let currentAction = 'idle';
-  let actionStartTime = 0;
-  let actionProgress = 0;
-  let nextActionTime = Date.now() + 3000;
+  let actionStart = Date.now();
+  let actionDuration = 2000;
+  let userInteracting = false;
+  let interactionTimer = null;
 
-  function pickRandomAction() {
-    const now = Date.now();
-    if (now >= nextActionTime) {
-      // 70%概率选idle，30%概率选其他动作
-      if (Math.random() < 0.3) {
-        const otherActions = actions.filter(a => a.name !== 'idle');
-        currentAction = otherActions[Math.floor(Math.random() * otherActions.length)].name;
-      } else {
-        currentAction = 'idle';
-      }
-      actionStartTime = now;
-      const action = actions.find(a => a.name === currentAction);
-      nextActionTime = now + action.duration + Math.random() * 2000;
+  function triggerRandomAction() {
+    if (userInteracting) return;
+    const r = Math.random();
+    if (r < 0.4) {
+      currentAction = 'idle';
+      actionDuration = 1500 + Math.random() * 1500;
+    } else {
+      const nonIdle = actions.filter(a => a !== 'idle');
+      currentAction = nonIdle[Math.floor(Math.random() * nonIdle.length)];
+      actionDuration = currentAction === 'spin' ? 1200 : 800;
     }
+    actionStart = Date.now();
   }
 
-  function updateAction(time) {
-    pickRandomAction();
-    const action = actions.find(a => a.name === currentAction);
-    const elapsed = time - actionStartTime;
-    actionProgress = Math.min(elapsed / action.duration, 1);
+  // 初始延迟后开始随机动作
+  setTimeout(() => {
+    triggerRandomAction();
+    setInterval(triggerRandomAction, 2500);
+  }, 2000);
 
-    // 基础呼吸动画
+  function updateAction(time) {
+    if (!modelLoaded || !mascot) return;
+    const progress = Math.min((time - actionStart) / actionDuration, 1);
+
+    // 基础呼吸
     const breathe = Math.sin(time * 0.002) * 0.02;
-    mascot.scale.set(1 + breathe, 1 - breathe * 0.5, 1 + breathe);
+    const baseScale = 0.85;
+    mascot.scale.set(baseScale + breathe, baseScale - breathe * 0.5, baseScale + breathe);
 
     switch (currentAction) {
-      case 'idle':
-        // 缓慢左右摇摆
-        mascot.rotation.z = Math.sin(time * 0.001) * 0.03;
-        mascot.position.y = Math.sin(time * 0.0015) * 0.03;
-        headGroup.rotation.y = Math.sin(time * 0.0008) * 0.1;
-        break;
-
       case 'wave':
-        // 挥手（右臂上下摆动）
-        const waveAngle = Math.sin(actionProgress * Math.PI * 3) * 0.8;
-        rightArm.rotation.z = -0.5 - waveAngle;
-        rightArm.position.y = 0.4 + Math.sin(actionProgress * Math.PI) * 0.2;
-        headGroup.rotation.z = Math.sin(actionProgress * Math.PI) * 0.1;
-        if (actionProgress >= 1) {
+        if (rightArm) {
+          rightArm.rotation.z = -0.5 + Math.sin(progress * Math.PI * 4) * 0.6;
+          rightArm.position.y = 0.4 + Math.sin(progress * Math.PI * 2) * 0.1;
+        }
+        if (progress >= 1 && rightArm) {
           rightArm.rotation.z = -0.5;
           rightArm.position.y = 0.4;
         }
         break;
 
       case 'nod':
-        // 点头
-        headGroup.rotation.x = Math.sin(actionProgress * Math.PI * 2) * 0.2;
-        mascot.position.y = Math.sin(actionProgress * Math.PI) * 0.05;
-        if (actionProgress >= 1) headGroup.rotation.x = 0;
+        if (head) head.rotation.x = Math.sin(progress * Math.PI * 2) * 0.2;
+        mascot.position.y = -0.3 + Math.sin(progress * Math.PI) * 0.05;
+        if (progress >= 1 && head) head.rotation.x = 0;
         break;
 
       case 'shake':
-        // 摇头
-        headGroup.rotation.y = Math.sin(actionProgress * Math.PI * 4) * 0.25;
-        if (actionProgress >= 1) headGroup.rotation.y = 0;
+        if (head) head.rotation.y = Math.sin(progress * Math.PI * 4) * 0.25;
+        if (progress >= 1 && head) head.rotation.y = 0;
         break;
 
       case 'jump':
-        // 跳跃
-        const jumpHeight = Math.sin(actionProgress * Math.PI) * 0.4;
-        mascot.position.y = jumpHeight;
-        leftArm.rotation.z = 0.5 + Math.sin(actionProgress * Math.PI) * 0.5;
-        rightArm.rotation.z = -0.5 - Math.sin(actionProgress * Math.PI) * 0.5;
-        if (actionProgress >= 1) {
-          mascot.position.y = 0;
-          leftArm.rotation.z = 0.5;
-          rightArm.rotation.z = -0.5;
+        mascot.position.y = -0.3 + Math.sin(progress * Math.PI) * 0.4;
+        if (leftArm) leftArm.rotation.z = 0.5 + Math.sin(progress * Math.PI) * 0.5;
+        if (rightArm) rightArm.rotation.z = -0.5 - Math.sin(progress * Math.PI) * 0.5;
+        if (progress >= 1) {
+          mascot.position.y = -0.3;
+          if (leftArm) leftArm.rotation.z = 0.5;
+          if (rightArm) rightArm.rotation.z = -0.5;
         }
         break;
 
       case 'tilt':
-        // 歪头+身体倾斜
-        mascot.rotation.z = Math.sin(actionProgress * Math.PI) * 0.15;
-        headGroup.rotation.z = Math.sin(actionProgress * Math.PI) * 0.2;
-        if (actionProgress >= 1) {
+        mascot.rotation.z = Math.sin(progress * Math.PI) * 0.15;
+        if (head) head.rotation.z = Math.sin(progress * Math.PI) * 0.2;
+        if (progress >= 1) {
           mascot.rotation.z = 0;
-          headGroup.rotation.z = 0;
+          if (head) head.rotation.z = 0;
         }
         break;
 
       case 'spin':
-        // 旋转一圈
-        mascot.rotation.y = actionProgress * Math.PI * 2;
-        if (actionProgress >= 1) mascot.rotation.y = 0;
+        mascot.rotation.y = progress * Math.PI * 2;
+        if (progress >= 1) mascot.rotation.y = 0;
         break;
 
       case 'blink':
-        // 眨眼
-        const blinkScale = actionProgress < 0.5 ?
-          1 - Math.sin(actionProgress * Math.PI * 2) * 0.9 :
-          0.1 + Math.sin((actionProgress - 0.5) * Math.PI * 2) * 0.9;
-        leftEye.scale.y = Math.max(blinkScale, 0.1);
-        rightEye.scale.y = Math.max(blinkScale, 0.1);
-        if (actionProgress >= 1) {
-          leftEye.scale.y = 1;
-          rightEye.scale.y = 1;
+        const blinkScale = progress < 0.5 ?
+          1 - Math.sin(progress * Math.PI * 2) * 0.9 :
+          0.1 + Math.sin((progress - 0.5) * Math.PI * 2) * 0.9;
+        if (leftEye) leftEye.scale.y = Math.max(blinkScale, 0.1);
+        if (rightEye) rightEye.scale.y = Math.max(blinkScale, 0.1);
+        if (progress >= 1) {
+          if (leftEye) leftEye.scale.y = 1;
+          if (rightEye) rightEye.scale.y = 1;
         }
         break;
     }
 
     // 围巾飘带动画
-    scarfTail.rotation.z = -0.3 + Math.sin(time * 0.003) * 0.15;
-    scarfTail.position.x = 0.35 + Math.sin(time * 0.002) * 0.05;
+    if (scarfTail) {
+      scarfTail.rotation.z = -0.3 + Math.sin(time * 0.003) * 0.15;
+    }
 
     // 尾巴摇摆
-    tail.rotation.x = -Math.PI / 2.5 + Math.sin(time * 0.004) * 0.2;
+    if (tail) {
+      tail.rotation.x = -Math.PI / 2.5 + Math.sin(time * 0.004) * 0.2;
+    }
 
     // 底座发光脉冲
-    baseMat.opacity = 0.2 + Math.sin(time * 0.002) * 0.1;
-    baseInnerMat.opacity = 0.15 + Math.sin(time * 0.0025) * 0.1;
-    base.scale.set(1 + Math.sin(time * 0.0015) * 0.05, 1, 1 + Math.sin(time * 0.0015) * 0.05);
+    if (baseRing && baseRing.material) {
+      baseRing.material.opacity = 0.2 + Math.sin(time * 0.002) * 0.1;
+    }
+    if (baseInner && baseInner.material) {
+      baseInner.material.opacity = 0.15 + Math.sin(time * 0.0025) * 0.1;
+    }
   }
 
   // ---------- 轨道控制器 ----------
@@ -376,16 +340,13 @@
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.enablePan = false;
-  controls.minDistance = 3.5;
-  controls.maxDistance = 9;
+  controls.minDistance = 3;
+  controls.maxDistance = 8;
   controls.minPolarAngle = Math.PI * 0.2;
   controls.maxPolarAngle = Math.PI * 0.8;
   controls.rotateSpeed = 0.7;
 
   // ---------- 交互时暂停随机动作 ----------
-  let userInteracting = false;
-  let interactionTimer = null;
-
   function onInteract() {
     userInteracting = true;
     clearTimeout(interactionTimer);
@@ -415,16 +376,17 @@
 
     if (!userInteracting) {
       updateAction(time);
-    } else {
+    } else if (mascot) {
       // 交互时保持基础呼吸
       const breathe = Math.sin(time * 0.002) * 0.02;
-      mascot.scale.set(1 + breathe, 1 - breathe * 0.5, 1 + breathe);
-      scarfTail.rotation.z = -0.3 + Math.sin(time * 0.003) * 0.15;
-      tail.rotation.x = -Math.PI / 2.5 + Math.sin(time * 0.004) * 0.2;
+      const baseScale = 0.85;
+      mascot.scale.set(baseScale + breathe, baseScale - breathe * 0.5, baseScale + breathe);
+      if (scarfTail) scarfTail.rotation.z = -0.3 + Math.sin(time * 0.003) * 0.15;
+      if (tail) tail.rotation.x = -Math.PI / 2.5 + Math.sin(time * 0.004) * 0.2;
     }
 
     // 粒子漂浮
-    particles.children.forEach((p, i) => {
+    particles.children.forEach((p) => {
       p.position.y += p.userData.speed;
       p.position.x += Math.sin(time * 0.001 + p.userData.offset) * 0.002;
       if (p.position.y > 2.5) p.position.y = -2.5;
@@ -438,28 +400,22 @@
 })();
 
 /* ============================================================
-   导航栏小3D刘看山模型
+   导航栏小3D刘看山模型（代码拼接几何体，轻量快速）
    ============================================================ */
 function initNavMascot() {
   const canvas = document.getElementById('navMascot');
   if (!canvas || typeof THREE === 'undefined') return;
 
-  // 场景
   const scene = new THREE.Scene();
-  scene.background = null;
-
-  // 相机
   const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
   camera.position.set(0, 0.35, 2.6);
   camera.lookAt(0, 0.25, 0);
 
-  // 渲染器
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setSize(88, 88, false);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
 
-  // 灯光
   const ambient = new THREE.AmbientLight(0xffffff, 0.7);
   scene.add(ambient);
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -469,32 +425,27 @@ function initNavMascot() {
   fillLight.position.set(-2, 1, -1);
   scene.add(fillLight);
 
-  // 材质
   const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.05 });
   const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4 });
   const blueMat = new THREE.MeshStandardMaterial({ color: 0x0084ff, roughness: 0.5, metalness: 0.2 });
   const pinkMat = new THREE.MeshStandardMaterial({ color: 0xffb6c1, roughness: 0.7 });
 
-  // 模型组
   const mascot = new THREE.Group();
   mascot.position.y = -0.05;
   mascot.scale.set(1.15, 1.15, 1.15);
   scene.add(mascot);
 
-  // 身体（球体缩放）
   const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), whiteMat);
   body.position.y = 0;
   body.scale.set(1, 1.3, 1);
   body.castShadow = true;
   mascot.add(body);
 
-  // 头
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 20, 20), whiteMat);
   head.position.y = 0.85;
   head.castShadow = true;
   mascot.add(head);
 
-  // 耳朵
   const earGeo = new THREE.ConeGeometry(0.13, 0.3, 4);
   const leftEar = new THREE.Mesh(earGeo, whiteMat);
   leftEar.position.set(-0.28, 1.2, 0);
@@ -505,7 +456,6 @@ function initNavMascot() {
   rightEar.rotation.z = -0.25;
   mascot.add(rightEar);
 
-  // 耳朵内侧（粉色）
   const innerEarGeo = new THREE.ConeGeometry(0.06, 0.15, 4);
   const leftInner = new THREE.Mesh(innerEarGeo, pinkMat);
   leftInner.position.set(-0.28, 1.17, 0.05);
@@ -516,7 +466,6 @@ function initNavMascot() {
   rightInner.rotation.z = -0.25;
   mascot.add(rightInner);
 
-  // 眼睛
   const eyeGeo = new THREE.SphereGeometry(0.06, 10, 10);
   const leftEye = new THREE.Mesh(eyeGeo, darkMat);
   leftEye.position.set(-0.15, 0.9, 0.38);
@@ -525,7 +474,6 @@ function initNavMascot() {
   rightEye.position.set(0.15, 0.9, 0.38);
   mascot.add(rightEye);
 
-  // 眼睛高光
   const highlightGeo = new THREE.SphereGeometry(0.02, 6, 6);
   const highlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const leftHL = new THREE.Mesh(highlightGeo, highlightMat);
@@ -535,13 +483,11 @@ function initNavMascot() {
   rightHL.position.set(0.17, 0.92, 0.43);
   mascot.add(rightHL);
 
-  // 大鼻子
   const nose = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), darkMat);
   nose.position.set(0, 0.78, 0.42);
   nose.scale.set(1.2, 0.9, 0.8);
   mascot.add(nose);
 
-  // 腮红
   const blushGeo = new THREE.SphereGeometry(0.06, 8, 8);
   const blushMat = new THREE.MeshStandardMaterial({ color: 0xffb6c1, transparent: true, opacity: 0.6 });
   const leftBlush = new THREE.Mesh(blushGeo, blushMat);
@@ -553,26 +499,22 @@ function initNavMascot() {
   rightBlush.scale.set(1, 0.6, 0.3);
   mascot.add(rightBlush);
 
-  // 蓝色围巾
   const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.08, 8, 20), blueMat);
   scarf.position.y = 0.45;
   scarf.rotation.x = Math.PI / 2;
   mascot.add(scarf);
 
-  // 围巾飘带
   const scarfTail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.3, 0.04), blueMat);
   scarfTail.position.set(0.25, 0.3, 0.3);
   scarfTail.rotation.z = -0.3;
   mascot.add(scarfTail);
 
-  // 底座发光圆环
   const baseMat = new THREE.MeshBasicMaterial({ color: 0x0084ff, transparent: true, opacity: 0.2 });
   const base = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.03, 8, 30), baseMat);
   base.position.y = -0.65;
   base.rotation.x = Math.PI / 2;
   mascot.add(base);
 
-  // 随机动作系统
   const actions = ['idle', 'swing', 'nod', 'jump', 'spin', 'blink', 'tilt'];
   let currentAction = 'idle';
   let actionStart = Date.now();
@@ -591,13 +533,11 @@ function initNavMascot() {
     actionStart = Date.now();
   }
 
-  // 初始延迟后开始随机动作
   setTimeout(() => {
     triggerRandomAction();
     setInterval(triggerRandomAction, 2500);
   }, 1000);
 
-  // 点击触发随机动作
   canvas.style.cursor = 'pointer';
   canvas.addEventListener('click', () => {
     const nonIdle = actions.filter(a => a !== 'idle');
@@ -606,17 +546,14 @@ function initNavMascot() {
     actionDuration = currentAction === 'spin' ? 1200 : 800;
   });
 
-  // 渲染循环
   function animate() {
     requestAnimationFrame(animate);
     const time = Date.now();
     const progress = Math.min((time - actionStart) / actionDuration, 1);
 
-    // 基础呼吸
     const breathe = Math.sin(time * 0.003) * 0.02;
     mascot.scale.set(1.15 + breathe, 1.15 - breathe * 0.5, 1.15 + breathe);
 
-    // 动作
     switch (currentAction) {
       case 'swing':
         mascot.rotation.z = Math.sin(progress * Math.PI * 2) * 0.15;
@@ -647,10 +584,7 @@ function initNavMascot() {
         break;
     }
 
-    // 围巾飘带微动
     scarfTail.rotation.z = -0.3 + Math.sin(time * 0.004) * 0.1;
-
-    // 底座发光
     baseMat.opacity = 0.15 + Math.sin(time * 0.003) * 0.1;
 
     renderer.render(scene, camera);
@@ -658,7 +592,6 @@ function initNavMascot() {
   animate();
 }
 
-// 页面加载完成后初始化导航栏3D模型
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initNavMascot);
 } else {
