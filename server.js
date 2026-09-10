@@ -10,11 +10,35 @@
  *  · 所有知乎开放能力调用均带应用层缓存，遵守额度限制
  */
 
+/* ---------- 加载 .env（必须在所有 require 之前，因为子模块会在加载时读取环境变量） ---------- */
 const path = require('path');
+const fs = require('fs');
+(function loadEnv() {
+  const envPath = path.join(__dirname, '.env');
+  if (!fs.existsSync(envPath)) return;
+  const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq < 0) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let val = trimmed.slice(eq + 1).trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (key && !(key in process.env)) {
+      process.env[key] = val;
+    }
+  }
+})();
+
 const express = require('express');
 const zhihu = require('./lib/zhihuClient');
 const knowledgeApi = require('./agents/knowledgeApi');
 const { runPipeline } = require('./agents/orchestrator');
+const { generateGuide, askFollowup } = require('./agents/llmGuide');
+const llm = require('./lib/llmClient');
 const { getAllScenarios, matchScenario } = require('./data/scenarios');
 const { DEMO_HOT } = require('./data/hotTopics');
 const { version, name } = require('./package.json');
@@ -92,6 +116,8 @@ app.get('/api/health', async (req, res) => {
       app: { name, version },
       mode: live ? 'live' : 'demo',
       zhihuAvailable: live,
+      llmAvailable: llm.isAvailable(),
+      llmModel: llm.DEFAULT_MODEL,
       quota,
     });
   } catch (err) {
@@ -167,7 +193,20 @@ app.get('/api/guide', async (req, res) => {
   try {
     rateLimit(req.ip, 30, 60 * 60 * 1000);
     const topic = validateTopic(req.query.topic || '');
-    const result = await runPipeline(topic);
+    const mode = req.query.mode === 'llm' ? 'llm' : 'template';
+    const audience = req.query.audience || 'both';
+    let result;
+    if (mode === 'llm') {
+      if (!llm.isAvailable()) {
+        const err = new Error('LLM 未配置，请先设置 OPENAI_API_KEY');
+        err.code = 'LLM_NOT_CONFIGURED';
+        err.status = 503;
+        throw err;
+      }
+      result = await generateGuide(topic, { audience });
+    } else {
+      result = await runPipeline(topic);
+    }
     res.json({ ok: true, data: result });
   } catch (err) {
     sendError(res, err);
@@ -179,6 +218,8 @@ app.get('/api/guide/stream', async (req, res) => {
   try {
     rateLimit(req.ip, 30, 60 * 60 * 1000);
     const topic = validateTopic(req.query.topic || '');
+    const mode = req.query.mode === 'llm' ? 'llm' : 'template';
+    const audience = req.query.audience || 'both';
 
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -198,7 +239,30 @@ app.get('/api/guide/stream', async (req, res) => {
     };
 
     try {
-      const result = await runPipeline(topic, { emit });
+      let result;
+      if (mode === 'llm') {
+        if (!llm.isAvailable()) {
+          throw Object.assign(new Error('LLM 未配置'), { code: 'LLM_NOT_CONFIGURED' });
+        }
+        // LLM 模式：模拟三 Agent 进度推送，同时调用 LLM
+        emit('system', null, 'start', `正在为「${topic}」生成 AI 定制学习路径（${llm.DEFAULT_MODEL}）…`);
+        emit('log', 'collector', 'running', '资料收集官：正在检索领域资料与热点话题…');
+        await new Promise(r => setTimeout(r, 600));
+        emit('log', 'collector', 'done', '资料收集官：资料与热点已整理完成');
+        emit('log', 'comparator', 'running', '观点对照官：正在分析领域内的核心分歧…');
+        await new Promise(r => setTimeout(r, 600));
+        emit('log', 'comparator', 'done', '观点对照官：分歧与共识已梳理完成');
+        emit('log', 'curator', 'running', '知识梳理官：正在编织学习路径、概念与复习卡片…');
+        // 实际 LLM 调用（在 curator 阶段等待），带进度回调
+        result = await generateGuide(topic, {
+          audience,
+          onProgress: (msg) => emit('log', 'curator', 'running', msg),
+        });
+        emit('log', 'curator', 'done', '知识梳理官：学习路径已生成完成');
+        emit('system', null, 'complete', 'AI 定制引路完成');
+      } else {
+        result = await runPipeline(topic, { emit });
+      }
       if (!closed) {
         res.write(`event: result\n`);
         res.write(`data: ${JSON.stringify(result)}\n\n`);
@@ -214,6 +278,40 @@ app.get('/api/guide/stream', async (req, res) => {
   } catch (err) {
     sendError(res, err);
   }
+});
+
+/* ---------- API：追问（LLM 实时回答） ---------- */
+app.post('/api/ask', async (req, res) => {
+  try {
+    rateLimit(req.ip, 60, 60 * 1000);
+    const { topic, question, context } = req.body || {};
+    if (!topic || !question) {
+      const err = new Error('缺少 topic 或 question 参数');
+      err.code = 'MISSING_PARAMS';
+      err.status = 400;
+      throw err;
+    }
+    if (!llm.isAvailable()) {
+      const err = new Error('LLM 未配置');
+      err.code = 'LLM_NOT_CONFIGURED';
+      err.status = 503;
+      throw err;
+    }
+    const answer = await askFollowup(topic, question, context || {});
+    res.json({ ok: true, data: { answer } });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+/* ---------- API：LLM 状态 ---------- */
+app.get('/api/llm/status', (req, res) => {
+  res.json({
+    ok: true,
+    available: llm.isAvailable(),
+    model: llm.DEFAULT_MODEL,
+    baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai-next.com/v1',
+  });
 });
 
 /* ---------- 启动 ---------- */

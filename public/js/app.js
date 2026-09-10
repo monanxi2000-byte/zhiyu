@@ -16,6 +16,7 @@ const el = (tag, cls, html) => {
 
 const state = {
   mode: 'demo',
+  guideMode: 'template', // template | llm
   flashcards: [],
   fcIndex: 0,
   currentResult: null,
@@ -176,6 +177,28 @@ function bindEvents() {
       if (panel) panel.classList.add('active');
     });
   });
+
+  // 模式切换
+  $$('.mode-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      $$('.mode-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.guideMode = btn.dataset.mode;
+    });
+  });
+
+  // 追问：提问按钮
+  $('#askBtn').addEventListener('click', () => submitAsk());
+  $('#askInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitAsk();
+  });
+  // 追问：建议问题点击
+  $$('.ask-suggest-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      $('#askInput').value = btn.textContent;
+      submitAsk();
+    });
+  });
   $('#flashcard').addEventListener('click', () => $('#flashcard').classList.toggle('flipped'));
   $('#modalClose').addEventListener('click', closeReader);
   $('#agentModalClose').addEventListener('click', closeAgentModal);
@@ -204,7 +227,8 @@ function startGuide(topic) {
   $('#pipelineLog').innerHTML = '';
   scrollToSection('#pipeline');
 
-  const url = `/api/guide/stream?topic=${encodeURIComponent(topic)}`;
+  const modeParam = state.guideMode === 'llm' ? `&mode=llm&audience=${state.currentAudience}` : '';
+  const url = `/api/guide/stream?topic=${encodeURIComponent(topic)}${modeParam}`;
   const es = new EventSource(url);
 
   es.addEventListener('log', (ev) => {
@@ -223,7 +247,7 @@ function startGuide(topic) {
     if (state.currentResult) return;
     es.close();
     pushLog('warn', '实时进度通道中断，正在切换为一次性请求…');
-    fetch(`/api/guide?topic=${encodeURIComponent(topic)}`)
+    fetch(`/api/guide?topic=${encodeURIComponent(topic)}${modeParam}`)
       .then((r) => r.json())
       .then((d) => {
         if (d.ok && d.data) onResult(d.data);
@@ -314,6 +338,10 @@ function onResult(result) {
   renderSources(result.materials.sources, result.meta.live);
   renderFlashcards(result.studyPlan.flashcards);
   renderHot(result.materials.hotTopics, result.meta.live);
+  // 显示追问区（LLM 模式或模板模式都显示）
+  $('#askBlock').hidden = false;
+  $('#askAnswers').innerHTML = '';
+  $('#askInput').value = '';
   $('#results').hidden = false;
   setTimeout(() => {
     scrollToSection('#results');
@@ -742,6 +770,79 @@ function openAgentDetail(agentId) {
 function closeAgentModal() {
   $('#agentModal').hidden = true;
   document.body.style.overflow = '';
+}
+
+/* ---------- AI 追问 ---------- */
+function submitAsk() {
+  const input = $('#askInput');
+  const question = input.value.trim();
+  if (!question) return;
+  if (!state.currentTopic) return;
+
+  const btn = $('#askBtn');
+  btn.disabled = true;
+  btn.textContent = '思考中…';
+  input.value = '';
+
+  const answersBox = $('#askAnswers');
+  const loading = el('div', 'ask-loading', '引路人正在思考…');
+  answersBox.appendChild(loading);
+  loading.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // 构造上下文
+  const context = {
+    stages: state.currentResult?.studyPlan?.stages?.map((s) => ({ title: s.title })) || [],
+    concepts: state.currentResult?.studyPlan?.concepts?.map((c) => ({ name: c.name })) || [],
+    debates: state.currentResult?.comparison?.debates?.map((d) => ({ topic: d.topic })) || [],
+  };
+
+  fetch('/api/ask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ topic: state.currentTopic, question, context }),
+  })
+    .then((r) => r.json())
+    .then((d) => {
+      loading.remove();
+      btn.disabled = false;
+      btn.textContent = '提问';
+      if (!d.ok) throw new Error(d.message || '提问失败');
+      const item = el('div', 'ask-answer-item');
+      const q = el('div', 'ask-answer-q', `💬 ${esc(question)}`);
+      const a = el('div', 'ask-answer-a');
+      a.innerHTML = renderMarkdown(d.data.answer);
+      item.appendChild(q);
+      item.appendChild(a);
+      answersBox.appendChild(item);
+      item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    })
+    .catch((err) => {
+      loading.remove();
+      btn.disabled = false;
+      btn.textContent = '提问';
+      const item = el('div', 'ask-answer-item');
+      item.style.borderColor = '#ffccc7';
+      item.innerHTML = `<div class="ask-answer-q">💬 ${esc(question)}</div><div class="ask-answer-a" style="color:#cf1322">提问失败：${esc(err.message)}</div>`;
+      answersBox.appendChild(item);
+    });
+}
+
+/* 极简 markdown 渲染（只处理段落、列表、加粗、换行） */
+function renderMarkdown(text) {
+  if (!text) return '';
+  let html = esc(text);
+  // 加粗
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // 无序列表
+  html = html.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m.replace(/\n/g, '')}</ul>`);
+  // 有序列表
+  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+  // 段落（空行分隔）
+  html = html.replace(/\n{2,}/g, '</p><p>');
+  // 单换行转 <br>
+  html = html.replace(/\n/g, '<br>');
+  return `<p>${html}</p>`;
 }
 
 /* ---------- 启动 ---------- */

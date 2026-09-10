@@ -61,6 +61,19 @@
             <span class="btn-loading" hidden>引路中…</span>
           </button>
         </form>
+        <!-- 模式切换 -->
+        <div class="mode-switch" id="modeSwitch">
+          <button class="mode-btn active" data-mode="template" title="内置模板，秒出结果">
+            <span class="mode-icon">⚡</span>
+            <span class="mode-name">模板引路</span>
+            <span class="mode-desc">秒出结果</span>
+          </button>
+          <button class="mode-btn" data-mode="llm" title="AI 深度定制，更个性化">
+            <span class="mode-icon">🤖</span>
+            <span class="mode-name">AI 定制</span>
+            <span class="mode-desc">深度个性化</span>
+          </button>
+        </div>
         <div class="form-hint">由三个 AI Agent 协作完成 · 资料整理 → 观点对照 → 知识梳理</div>
       </div>
 
@@ -198,6 +211,22 @@
           <button class="audience-btn" data-audience="professional">💼 职场新人</button>
         </div>
         <div class="hot-list" id="hotList"></div>
+      </div>
+
+      <!-- AI 追问 -->
+      <div class="result-block ask-block" id="askBlock" hidden>
+        <h3 class="result-title">💬 向引路人追问 <span class="result-sub">关于这个领域，还有什么想问的？</span></h3>
+        <div class="ask-input-row">
+          <input type="text" id="askInput" placeholder="例如：这个阶段具体怎么练？有没有更适合我的资源？" maxlength="200" />
+          <button id="askBtn">提问</button>
+        </div>
+        <div class="ask-suggestions" id="askSuggestions">
+          <button class="ask-suggest-btn">这个阶段具体怎么练？</button>
+          <button class="ask-suggest-btn">有没有免费的学习资源？</button>
+          <button class="ask-suggest-btn">新手最容易犯什么错？</button>
+          <button class="ask-suggest-btn">怎么判断自己学到位了？</button>
+        </div>
+        <div class="ask-answers" id="askAnswers"></div>
       </div>
     </div>
   </section>
