@@ -1326,11 +1326,12 @@ function closeAgentInfoModal() {
   }
 }
 
-/* ---------- 顶部刘看山3D模型点击提示 ---------- */
+/* ---------- 顶部刘看山GIF图标随机动画 ---------- */
 function initMascotAnimation() {
   const mascot = document.querySelector('.brand-mascot');
   if (!mascot) return;
 
+  const animations = ['anim-swing', 'anim-bounce', 'anim-spin', 'anim-pulse', 'anim-tilt3d', 'anim-wink'];
   const messages = [
     '你好呀！我是刘看山 🦊',
     '欢迎来到知遇！',
@@ -1341,10 +1342,30 @@ function initMascotAnimation() {
     '拖拽下方3D模型可以旋转我！',
   ];
 
-  // 点击时显示提示（Three.js模型自己处理动画）
+  // 随机触发动画
+  function randomAnimate() {
+    const anim = animations[Math.floor(Math.random() * animations.length)];
+    mascot.classList.remove(...animations);
+    void mascot.offsetWidth; // 强制重排以重启动画
+    mascot.classList.add(anim);
+    setTimeout(() => mascot.classList.remove(anim), 1000);
+  }
+
+  // 每3-6秒随机触发一次
+  function scheduleNext() {
+    const delay = 3000 + Math.random() * 3000;
+    setTimeout(() => {
+      randomAnimate();
+      scheduleNext();
+    }, delay);
+  }
+  scheduleNext();
+
+  // 点击时触发随机动画 + 显示提示
   let tooltip = null;
   mascot.addEventListener('click', (e) => {
     e.preventDefault();
+    randomAnimate();
     if (!tooltip) {
       tooltip = document.createElement('div');
       tooltip.className = 'brand-mascot-tooltip';
@@ -1354,6 +1375,17 @@ function initMascotAnimation() {
     tooltip.textContent = messages[Math.floor(Math.random() * messages.length)];
     tooltip.classList.add('show');
     setTimeout(() => tooltip.classList.remove('show'), 2000);
+  });
+
+  // 鼠标悬停时轻微3D倾斜
+  mascot.addEventListener('mousemove', (e) => {
+    const rect = mascot.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    mascot.style.transform = `rotateY(${x * 25}deg) rotateX(${-y * 25}deg) scale(1.1)`;
+  });
+  mascot.addEventListener('mouseleave', () => {
+    mascot.style.transform = '';
   });
 }
 
