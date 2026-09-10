@@ -75,6 +75,12 @@
           </button>
         </div>
         <div class="form-hint">由三个 AI Agent 协作完成 · 资料整理 → 观点对照 → 知识梳理</div>
+
+        <!-- 最近引路记录 -->
+        <div class="recent-guides" id="recentGuides" hidden>
+          <div class="recent-title">🕘 最近引路</div>
+          <div class="recent-list" id="recentList"></div>
+        </div>
       </div>
 
       <div class="hero-visual hero-scene" id="heroScene">
@@ -155,6 +161,25 @@
     <div class="section-inner">
       <div class="meta-bar" id="metaBar"></div>
 
+      <!-- 操作工具栏：导出 + 收藏 -->
+      <div class="result-toolbar" id="resultToolbar">
+        <button class="tool-btn" id="exportMdBtn" title="导出为 Markdown">📝 导出 Markdown</button>
+        <button class="tool-btn" id="copyMdBtn" title="复制 Markdown 到剪贴板">📋 复制内容</button>
+        <button class="tool-btn" id="favoriteBtn" title="收藏这个引路">⭐ 收藏</button>
+        <span class="tool-spacer"></span>
+        <span class="tool-hint" id="toolHint"></span>
+      </div>
+
+      <!-- 总学习进度条 -->
+      <div class="overall-progress" id="overallProgress">
+        <div class="op-label">
+          <span>📊 整体学习进度</span>
+          <span id="opPercent">0%</span>
+        </div>
+        <div class="op-bar"><div class="op-fill" id="opFill"></div></div>
+        <div class="op-stages" id="opStages"></div>
+      </div>
+
       <!-- 学习路径 -->
       <div class="result-block">
         <h3 class="result-title">🗺️ 学习路径 <span class="result-sub">分阶段走，每步都可执行 · 点击「避坑与里程碑」看细节</span></h3>
@@ -184,7 +209,7 @@
 
       <!-- 复习卡片 -->
       <div class="result-block">
-        <h3 class="result-title">🃏 复习卡片 <span class="result-sub">点击翻转，间隔复习</span></h3>
+        <h3 class="result-title">🃏 复习卡片 <span class="result-sub">点击翻转 · 空格翻转 · ←→切换 · 标记已掌握</span></h3>
         <div class="flashcard-area">
           <div class="flashcard" id="flashcard">
             <div class="flashcard-inner">
@@ -196,6 +221,11 @@
             <button id="fcPrev">← 上一张</button>
             <span id="fcCount"></span>
             <button id="fcNext">下一张 →</button>
+          </div>
+          <div class="flash-actions">
+            <button class="fc-action-btn mastered" id="fcMastered">✅ 已掌握</button>
+            <button class="fc-action-btn review" id="fcReview">🔄 需复习</button>
+            <span class="fc-progress" id="fcProgress">已掌握 0/0</span>
           </div>
         </div>
       </div>
@@ -386,26 +416,34 @@
                   <p>立体阶梯时间线、卡片 tilt、Hero 视差；每阶段加避坑/里程碑/建议用时；概念加例子；讨论加引路人建议；四类复习卡片。</p>
                 </div>
               </div>
-              <div class="roadmap-item current">
+              <div class="roadmap-item done">
                 <div class="roadmap-dot"></div>
                 <div class="roadmap-content">
-                  <div class="roadmap-phase">v3.0 · 进行中</div>
+                  <div class="roadmap-phase">v3.0 · 已完成</div>
                   <div class="roadmap-title">3D 可交互 + Agent 详情 + 身份定位</div>
                   <p>刘看山三视图 3D 立方体可拖拽；三 Agent 点击查看详细产出；学生/职场新人身份过滤热点；关于我们动态优化。</p>
                 </div>
               </div>
-              <div class="roadmap-item">
+              <div class="roadmap-item done">
                 <div class="roadmap-dot"></div>
                 <div class="roadmap-content">
-                  <div class="roadmap-phase">v4.0 · 待 API Key</div>
-                  <div class="roadmap-title">LLM 深度定制 + 追问</div>
-                  <p>接入 OpenAI 兼容 LLM（Claude），任意话题动态生成定制路径；结果区加追问输入框，LLM 实时回答；模板与 LLM 双模式切换。</p>
+                  <div class="roadmap-phase">v4.0 · 已完成</div>
+                  <div class="roadmap-title">LLM 深度定制 + 追问 + 知乎实时</div>
+                  <p>接入 OpenAI 兼容 LLM（Claude），任意话题动态生成定制路径；结果区加追问输入框；知乎开放平台实时搜索/热榜/直答接入。</p>
+                </div>
+              </div>
+              <div class="roadmap-item current">
+                <div class="roadmap-dot"></div>
+                <div class="roadmap-content">
+                  <div class="roadmap-phase">v5.0 · 进行中</div>
+                  <div class="roadmap-title">体验升级 + 导出 + 历史记录</div>
+                  <p>总学习进度可视化；复习卡片键盘快捷键+已掌握标记；Markdown导出+复制；最近引路历史记录+收藏功能。</p>
                 </div>
               </div>
               <div class="roadmap-item">
                 <div class="roadmap-dot"></div>
                 <div class="roadmap-content">
-                  <div class="roadmap-phase">v5.0 · 未来</div>
+                  <div class="roadmap-phase">v6.0 · 未来</div>
                   <div class="roadmap-title">社区与个性化</div>
                   <p>用户学习进度云端同步；社区分享学习路径；基于学习历史的个性化推荐；知乎账号登录与人气奖接入。</p>
                 </div>
@@ -456,6 +494,23 @@
         <button class="modal-close" id="agentModalClose">✕</button>
       </div>
       <div class="modal-body" id="agentModalBody"></div>
+    </div>
+  </div>
+
+  <!-- 导出结果弹窗 -->
+  <div class="modal-mask" id="exportModal" hidden>
+    <div class="modal modal-wide">
+      <div class="modal-head">
+        <span class="modal-title">📝 导出 Markdown</span>
+        <button class="modal-close" id="exportModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="exportTextarea" readonly style="width:100%;min-height:400px;padding:12px;font-family:monospace;font-size:13px;border:1px solid #ddd;border-radius:8px;resize:vertical;"></textarea>
+      </div>
+      <div class="modal-foot">
+        <button class="tool-btn" id="copyExportBtn">📋 复制到剪贴板</button>
+        <button class="tool-btn" id="downloadExportBtn">💾 下载 .md 文件</button>
+      </div>
     </div>
   </div>
 

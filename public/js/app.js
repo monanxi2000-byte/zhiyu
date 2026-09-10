@@ -1,6 +1,7 @@
 /* ============================================================
-   知遇 ZhiYu · 前端逻辑 v2
+   知遇 ZhiYu · 前端逻辑 v5
    多 Agent 流水线（SSE 进度）+ 3D 交互 + 结果渲染
+   + 总进度可视化 + 复习卡片增强 + 导出 + 历史记录
    ============================================================ */
 
 'use strict';
@@ -19,9 +20,12 @@ const state = {
   guideMode: 'template', // template | llm
   flashcards: [],
   fcIndex: 0,
+  fcMastered: {}, // { index: true }
   currentResult: null,
   currentTopic: '',
   currentAudience: 'all',
+  history: [],
+  favorites: {},
 };
 
 /* ---------- 工具 ---------- */
@@ -86,7 +90,6 @@ function setupScrollEffects() {
     { threshold: 0.08 }
   );
   $$('.reveal').forEach((n) => observer.observe(n));
-  // 动态渲染出的 reveal 元素
   const resultObserver = new MutationObserver(() => {
     $$('.reveal:not(.visible)').forEach((n) => observer.observe(n));
   });
@@ -100,6 +103,7 @@ async function init() {
   setupScrollEffects();
   await loadMode();
   await loadScenarios();
+  loadHistory();
   bindEvents();
 }
 
@@ -142,6 +146,108 @@ async function loadScenarios() {
   }
 }
 
+/* ---------- 历史记录与收藏 ---------- */
+function loadHistory() {
+  try {
+    state.history = JSON.parse(localStorage.getItem('zhiyu_history') || '[]');
+    state.favorites = JSON.parse(localStorage.getItem('zhiyu_favorites') || '{}');
+  } catch {
+    state.history = [];
+    state.favorites = {};
+  }
+  renderRecentGuides();
+}
+
+function saveToHistory(topic, result) {
+  const item = {
+    topic,
+    scenarioName: result.meta?.scenarioName || '',
+    live: result.meta?.live || false,
+    stages: (result.studyPlan?.stages || []).length,
+    concepts: (result.studyPlan?.concepts || []).length,
+    flashcards: (result.studyPlan?.flashcards || []).length,
+    time: Date.now(),
+    result: JSON.parse(JSON.stringify(result)), // 保存完整结果用于恢复
+  };
+  // 去重：相同话题只保留最新
+  state.history = state.history.filter((h) => h.topic !== topic);
+  state.history.unshift(item);
+  if (state.history.length > 20) state.history = state.history.slice(0, 20);
+  try {
+    localStorage.setItem('zhiyu_history', JSON.stringify(state.history));
+  } catch { /* 存储满了就不保存 */ }
+  renderRecentGuides();
+}
+
+function renderRecentGuides() {
+  const box = $('#recentGuides');
+  const list = $('#recentList');
+  if (!box || !list) return;
+  if (!state.history.length) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  list.innerHTML = '';
+  state.history.slice(0, 8).forEach((h) => {
+    const item = el('div', 'recent-item');
+    const isFav = !!state.favorites[h.topic];
+    item.innerHTML = `<span>${isFav ? '⭐' : '🕘'}</span><span>${esc(h.topic)}</span><span style="color:#9ca3af;font-size:11px">${h.stages}阶段</span>`;
+    item.title = `${h.scenarioName} · ${new Date(h.time).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+    item.addEventListener('click', () => {
+      // 恢复历史结果
+      if (h.result) {
+        state.currentTopic = h.topic;
+        state.currentResult = h.result;
+        onResult(h.result);
+      }
+    });
+    list.appendChild(item);
+  });
+  // 清除按钮
+  const clear = el('span', 'recent-clear', '清除记录');
+  clear.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (confirm('确定清除所有引路记录？')) {
+      state.history = [];
+      localStorage.removeItem('zhiyu_history');
+      renderRecentGuides();
+    }
+  });
+  list.appendChild(clear);
+}
+
+function toggleFavorite() {
+  const topic = state.currentTopic;
+  if (!topic) return;
+  if (state.favorites[topic]) {
+    delete state.favorites[topic];
+    $('#favoriteBtn').classList.remove('active');
+    $('#favoriteBtn').textContent = '⭐ 收藏';
+    showToolHint('已取消收藏');
+  } else {
+    state.favorites[topic] = {
+      topic,
+      result: state.currentResult,
+      time: Date.now(),
+    };
+    $('#favoriteBtn').classList.add('active');
+    $('#favoriteBtn').textContent = '⭐ 已收藏';
+    showToolHint('已收藏到本地');
+  }
+  try {
+    localStorage.setItem('zhiyu_favorites', JSON.stringify(state.favorites));
+  } catch { /* ignore */ }
+}
+
+function showToolHint(text) {
+  const hint = $('#toolHint');
+  if (hint) {
+    hint.textContent = text;
+    setTimeout(() => { hint.textContent = ''; }, 2500);
+  }
+}
+
 /* ---------- 事件绑定 ---------- */
 function bindEvents() {
   $('#guideForm').addEventListener('submit', (e) => {
@@ -157,6 +263,17 @@ function bindEvents() {
 
   $('#fcPrev').addEventListener('click', () => flipCard(-1));
   $('#fcNext').addEventListener('click', () => flipCard(1));
+
+  // 复习卡片：已掌握 / 需复习
+  const fcMasteredBtn = $('#fcMastered');
+  const fcReviewBtn = $('#fcReview');
+  if (fcMasteredBtn) {
+    fcMasteredBtn.addEventListener('click', () => markCardMastered(true));
+  }
+  if (fcReviewBtn) {
+    fcReviewBtn.addEventListener('click', () => markCardMastered(false));
+  }
+
   // 身份定位过滤
   $$('.audience-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -199,6 +316,7 @@ function bindEvents() {
       submitAsk();
     });
   });
+
   $('#flashcard').addEventListener('click', () => $('#flashcard').classList.toggle('flipped'));
   $('#modalClose').addEventListener('click', closeReader);
   $('#agentModalClose').addEventListener('click', closeAgentModal);
@@ -208,14 +326,63 @@ function bindEvents() {
   $('#agentModal').addEventListener('click', (e) => {
     if (e.target.id === 'agentModal') closeAgentModal();
   });
+
+  // 导出按钮
+  const exportMdBtn = $('#exportMdBtn');
+  if (exportMdBtn) exportMdBtn.addEventListener('click', () => exportMarkdown());
+  const copyMdBtn = $('#copyMdBtn');
+  if (copyMdBtn) copyMdBtn.addEventListener('click', () => copyMarkdownToClipboard());
+  const favoriteBtn = $('#favoriteBtn');
+  if (favoriteBtn) favoriteBtn.addEventListener('click', toggleFavorite);
+
+  // 导出弹窗
+  const exportModalClose = $('#exportModalClose');
+  if (exportModalClose) exportModalClose.addEventListener('click', closeExportModal);
+  const exportModal = $('#exportModal');
+  if (exportModal) {
+    exportModal.addEventListener('click', (e) => {
+      if (e.target.id === 'exportModal') closeExportModal();
+    });
+  }
+  const copyExportBtn = $('#copyExportBtn');
+  if (copyExportBtn) copyExportBtn.addEventListener('click', () => {
+    const text = $('#exportTextarea').value;
+    copyToClipboard(text);
+    showToolHint('已复制到剪贴板');
+  });
+  const downloadExportBtn = $('#downloadExportBtn');
+  if (downloadExportBtn) downloadExportBtn.addEventListener('click', downloadMarkdown);
+
+  // 键盘快捷键
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeReader();
+    if (e.key === 'Escape') {
+      closeReader();
+      closeExportModal();
+    }
+    // 只在结果区可见时响应复习卡片快捷键
+    if ($('#results') && !$('#results').hidden) {
+      // 不阻止输入框中的按键
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        $('#flashcard').classList.toggle('flipped');
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        flipCard(-1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        flipCard(1);
+      } else if (e.key === 'm' || e.key === 'M') {
+        markCardMastered(true);
+      }
+    }
   });
 }
 
 /* ---------- 启动流水线 ---------- */
 function startGuide(topic) {
   state.currentTopic = topic;
+  state.fcMastered = {};
   $('#results').hidden = true;
   $('#pipeline').hidden = false;
   $('#guideBtn').disabled = true;
@@ -338,15 +505,31 @@ function onResult(result) {
   renderSources(result.materials.sources, result.meta.live);
   renderFlashcards(result.studyPlan.flashcards);
   renderHot(result.materials.hotTopics, result.meta.live);
-  // 显示追问区（LLM 模式或模板模式都显示）
+  // 显示追问区
   $('#askBlock').hidden = false;
   $('#askAnswers').innerHTML = '';
   $('#askInput').value = '';
   $('#results').hidden = false;
+  // 保存到历史记录
+  saveToHistory(state.currentTopic, result);
+  // 更新收藏按钮状态
+  updateFavoriteBtn();
   setTimeout(() => {
     scrollToSection('#results');
     setupScrollEffects();
   }, 120);
+}
+
+function updateFavoriteBtn() {
+  const btn = $('#favoriteBtn');
+  if (!btn) return;
+  if (state.favorites[state.currentTopic]) {
+    btn.classList.add('active');
+    btn.textContent = '⭐ 已收藏';
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = '⭐ 收藏';
+  }
 }
 
 function renderMeta(r) {
@@ -379,6 +562,10 @@ function renderTimeline(stages) {
   (stages || []).forEach((s) => {
     const card = el('div', 'timeline-stage-3d stage-card reveal');
     card.setAttribute('data-order', s.order);
+    // 进度指示条
+    const indicator = el('div', 'stage-progress-indicator');
+    indicator.style.width = saved[s.order] ? '100%' : '0%';
+    card.appendChild(indicator);
     card.appendChild(el('div', 'stage-num', String(s.order)));
 
     const head = el('div', 'stage-head');
@@ -392,6 +579,7 @@ function renderTimeline(stages) {
     cb.addEventListener('change', () => {
       saved[s.order] = cb.checked;
       card.classList.toggle('done', cb.checked);
+      indicator.style.width = cb.checked ? '100%' : '0%';
       try { localStorage.setItem(savedKey, JSON.stringify(saved)); } catch { /* ignore */ }
       updateStageProgress(stages);
     });
@@ -441,14 +629,33 @@ function updateStageProgress(stages) {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(key) || '{}'); } catch { saved = {}; }
   const done = (stages || []).filter((s) => saved[s.order]).length;
+  const total = (stages || []).length;
   let badge = $('#stageProgressBadge');
   if (!badge) {
     badge = el('span', 'meta-chip meta-progress', '');
     badge.id = 'stageProgressBadge';
     $('#metaBar').appendChild(badge);
   }
-  badge.textContent = `📈 学习进度 ${done}/${stages.length}`;
-  if (done === stages.length) badge.textContent = '🎉 全部完成！';
+  badge.textContent = `📈 学习进度 ${done}/${total}`;
+  if (done === total && total > 0) badge.textContent = '🎉 全部完成！';
+
+  // 更新总进度条
+  const opFill = $('#opFill');
+  const opPercent = $('#opPercent');
+  const opStages = $('#opStages');
+  if (opFill && opPercent) {
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    opFill.style.width = pct + '%';
+    opPercent.textContent = pct + '%';
+  }
+  if (opStages) {
+    opStages.innerHTML = '';
+    (stages || []).forEach((s) => {
+      const chip = el('div', `op-stage-chip${saved[s.order] ? ' done' : ''}`);
+      chip.innerHTML = `<span class="dot"></span><span>${s.order}. ${esc(s.title)}</span>`;
+      opStages.appendChild(chip);
+    });
+  }
 }
 
 function renderConcepts(concepts) {
@@ -544,12 +751,15 @@ function renderSources(sources, live) {
   });
 }
 
-/* ---------- 复习卡片 ---------- */
+/* ---------- 复习卡片（增强版） ---------- */
 function renderFlashcards(cards) {
   state.flashcards = cards || [];
   state.fcIndex = 0;
+  state.fcMastered = {};
   $('#flashcard').classList.remove('flipped');
+  $('#flashcard').classList.remove('mastered-card');
   showCard();
+  updateFcProgress();
 }
 
 const FC_TYPE_COLOR = { 概念卡: 'primary', 行动卡: 'accent', 避坑卡: 'danger', 决策卡: 'good' };
@@ -570,6 +780,12 @@ function showCard() {
   card.querySelector('.flashcard-back .fc-tag').textContent = '答案';
   card.querySelector('.flashcard-back .fc-text').textContent = fc.back;
   $('#fcCount').textContent = `${state.fcIndex + 1} / ${list.length}`;
+  // 更新已掌握状态样式
+  if (state.fcMastered[state.fcIndex]) {
+    card.classList.add('mastered-card');
+  } else {
+    card.classList.remove('mastered-card');
+  }
 }
 
 function flipCard(step) {
@@ -578,6 +794,189 @@ function flipCard(step) {
   state.fcIndex = (state.fcIndex + step + list.length) % list.length;
   $('#flashcard').classList.remove('flipped');
   showCard();
+}
+
+function markCardMastered(mastered) {
+  const list = state.flashcards;
+  if (!list.length) return;
+  if (mastered) {
+    state.fcMastered[state.fcIndex] = true;
+    $('#flashcard').classList.add('mastered-card');
+    showToolHint('已标记为掌握，自动跳到下一张');
+    // 自动跳到下一张
+    setTimeout(() => flipCard(1), 400);
+  } else {
+    delete state.fcMastered[state.fcIndex];
+    $('#flashcard').classList.remove('mastered-card');
+    showToolHint('已标记为需复习');
+  }
+  updateFcProgress();
+}
+
+function updateFcProgress() {
+  const total = state.flashcards.length;
+  const mastered = Object.keys(state.fcMastered).length;
+  const el = $('#fcProgress');
+  if (el) {
+    el.textContent = `已掌握 ${mastered}/${total}`;
+    if (mastered === total && total > 0) {
+      el.textContent = `🎉 全部掌握！${mastered}/${total}`;
+      el.style.color = '#16a34a';
+    } else {
+      el.style.color = '';
+    }
+  }
+}
+
+/* ---------- 导出 Markdown ---------- */
+function generateMarkdown() {
+  const r = state.currentResult;
+  if (!r) return '';
+  const m = r.meta;
+  const sp = r.studyPlan;
+  const cmp = r.comparison;
+  const mat = r.materials;
+
+  let md = `# 「${m.topic}」入门指南 · 知遇 ZhiYu\n\n`;
+  md += `> 由三个 AI Agent 协作完成 · ${m.scenarioName} · ${m.live ? '实时模式（知乎开放平台）' : '演示模式'}\n\n`;
+  md += `---\n\n`;
+
+  // 整体规划
+  if (sp.timePlan) {
+    md += `## 🗓️ 整体规划\n\n${sp.timePlan}\n\n`;
+  }
+
+  // 学习路径
+  md += `## 🗺️ 学习路径\n\n`;
+  (sp.stages || []).forEach((s) => {
+    md += `### 阶段 ${s.order}：${s.title}\n\n`;
+    md += `- **目标**：${s.goal}\n`;
+    if (s.timeHint) md += `- **建议用时**：${s.timeHint}\n`;
+    md += `\n**行动清单**：\n\n`;
+    (s.actions || []).forEach((a) => { md += `- ${a}\n`; });
+    if (s.skills && s.skills.length) {
+      md += `\n**技能标签**：${s.skills.join('、')}\n`;
+    }
+    if (s.pitfalls && s.pitfalls.length) {
+      md += `\n**⚠️ 常见坑**：${s.pitfalls.join('；')}\n`;
+    }
+    if (s.milestone) {
+      md += `\n**🏁 里程碑**：${s.milestone}\n`;
+    }
+    md += `\n`;
+  });
+
+  // 核心概念
+  if (sp.concepts && sp.concepts.length) {
+    md += `## 💡 核心概念\n\n`;
+    sp.concepts.forEach((c) => {
+      md += `### ${c.name}\n\n${c.explanation}\n\n`;
+      if (c.example) md += `> 💡 ${c.example}\n\n`;
+    });
+  }
+
+  // 观点对照
+  if (cmp.debates && cmp.debates.length) {
+    md += `## ⚖️ 观点对照\n\n`;
+    if (cmp.aiSummary) {
+      md += `> 🤖 **直答综述**：${cmp.aiSummary}\n\n`;
+    }
+    cmp.debates.forEach((d) => {
+      md += `### ${d.question}\n\n`;
+      (d.views || []).forEach((v) => {
+        md += `**${v.stance}（${v.label}）**\n\n`;
+        (v.points || []).forEach((p) => { md += `- ${p}\n`; });
+        if (v.source) md += `\n*来源：${v.source}*\n`;
+        md += `\n`;
+      });
+      if (d.consensus) md += `**🤝 共识**：${d.consensus}\n\n`;
+      if (d.guidance) md += `**🧭 引路人建议**：${d.guidance}\n\n`;
+    });
+  }
+
+  // 精选资料
+  if (mat.sources && mat.sources.length) {
+    md += `## 📚 精选资料\n\n`;
+    mat.sources.forEach((s, i) => {
+      md += `${i + 1}. **${s.title}**（${s.kind}）\n   ${s.desc}\n`;
+      if (s.url) md += `   ${s.url}\n`;
+      md += `\n`;
+    });
+  }
+
+  // 复习卡片
+  if (sp.flashcards && sp.flashcards.length) {
+    md += `## 🃏 复习卡片（共 ${sp.flashcards.length} 张）\n\n`;
+    sp.flashcards.forEach((f, i) => {
+      md += `### 卡片 ${i + 1}（${f.type}）\n\n`;
+      md += `**问**：${f.front}\n\n`;
+      md += `**答**：${f.back}\n\n`;
+    });
+  }
+
+  md += `---\n\n*由知遇 ZhiYu 生成 · 知乎黑客松 2026 · 队伍「邂逅」*\n`;
+  return md;
+}
+
+function exportMarkdown() {
+  const md = generateMarkdown();
+  const textarea = $('#exportTextarea');
+  if (textarea) textarea.value = md;
+  const modal = $('#exportModal');
+  if (modal) {
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeExportModal() {
+  const modal = $('#exportModal');
+  if (modal) {
+    modal.hidden = true;
+    document.body.style.overflow = '';
+  }
+}
+
+function copyMarkdownToClipboard() {
+  const md = generateMarkdown();
+  copyToClipboard(md);
+  showToolHint('已复制完整内容到剪贴板');
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    });
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+}
+
+function downloadMarkdown() {
+  const md = generateMarkdown();
+  const topic = (state.currentTopic || 'zhiyu').replace(/[\\/:*?"<>|]/g, '_');
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${topic}-知遇学习指南.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToolHint('已下载 Markdown 文件');
 }
 
 /* ---------- 热点（可点击引路 + 身份定位过滤） ---------- */
@@ -789,7 +1188,6 @@ function submitAsk() {
   answersBox.appendChild(loading);
   loading.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-  // 构造上下文
   const context = {
     stages: state.currentResult?.studyPlan?.stages?.map((s) => ({ title: s.title })) || [],
     concepts: state.currentResult?.studyPlan?.concepts?.map((c) => ({ name: c.name })) || [],
@@ -831,16 +1229,11 @@ function submitAsk() {
 function renderMarkdown(text) {
   if (!text) return '';
   let html = esc(text);
-  // 加粗
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  // 无序列表
   html = html.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
   html = html.replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m.replace(/\n/g, '')}</ul>`);
-  // 有序列表
   html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
-  // 段落（空行分隔）
   html = html.replace(/\n{2,}/g, '</p><p>');
-  // 单换行转 <br>
   html = html.replace(/\n/g, '<br>');
   return `<p>${html}</p>`;
 }
