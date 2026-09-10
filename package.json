@@ -2,9 +2,9 @@
   "name": "zhiyu",
   "version": "1.0.0",
   "description": "知遇 — 基于知乎知识生态的 AI 新人引路助手（知乎黑客松 2026 · 队伍「邂逅」）",
-  "main": "server.js",
+  "main": "start.js",
   "scripts": {
-    "start": "bash start.sh",
+    "start": "node start.js",
     "dev": "node server.js",
     "start:local": "node server.js",
     "postinstall": "node scripts/install-cli.js"
