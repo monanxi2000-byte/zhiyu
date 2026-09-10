@@ -4,8 +4,9 @@
   "description": "知遇 — 基于知乎知识生态的 AI 新人引路助手（知乎黑客松 2026 · 队伍「邂逅」）",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "bash start.sh",
+    "dev": "node server.js",
+    "start:local": "node server.js"
   },
   "engines": {
     "node": ">=18"
