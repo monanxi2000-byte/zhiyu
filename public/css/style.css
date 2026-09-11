@@ -29,7 +29,7 @@ html { scroll-behavior: smooth; }
 body {
   font-family: var(--font);
   color: var(--text);
-  background: var(--bg);
+  background: transparent;
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
 }
@@ -73,10 +73,12 @@ body {
 /* ---------- Hero ---------- */
 .hero { position: relative; overflow: hidden; }
 .hero-bg {
-  position: absolute; inset: 0;
+  position: absolute;
+  inset: 0;
   background:
-    radial-gradient(1000px 500px at 85% -10%, rgba(0, 132, 255, 0.10), transparent 60%),
-    radial-gradient(800px 400px at 10% 110%, rgba(255, 154, 61, 0.12), transparent 60%);
+    linear-gradient(180deg, rgba(8,12,20,0.25) 0%, rgba(8,12,20,0.15) 50%, rgba(8,12,20,0.4) 100%),
+    radial-gradient(1000px 500px at 85% -10%, rgba(0, 132, 255, 0.08), transparent 60%),
+    radial-gradient(800px 400px at 10% 110%, rgba(255, 154, 61, 0.08), transparent 60%);
   pointer-events: none;
 }
 .hero-inner {
