@@ -96,6 +96,56 @@ function setupScrollEffects() {
   resultObserver.observe($('#results'), { childList: true, subtree: true });
 }
 
+/* ---------- 3D等距学习路径地图 ---------- */
+function initMapViewToggle() {
+  const btn = $('#mapViewBtn');
+  if (!btn) return;
+  btn.addEventListener('click', toggleMapView);
+}
+
+function toggleMapView() {
+  const btn = $('#mapViewBtn');
+  const normalView = $('#normalView');
+  const mapView = $('#mapView');
+  if (!btn || !normalView || !mapView) return;
+
+  state.mapViewActive = !state.mapViewActive;
+  btn.classList.toggle('active', state.mapViewActive);
+  btn.textContent = state.mapViewActive ? '📋 列表视图' : '🌐 3D地图';
+
+  normalView.hidden = state.mapViewActive;
+  mapView.hidden = !state.mapViewActive;
+
+  if (state.mapViewActive) {
+    setTimeout(initMapView, 100);
+  } else {
+    if (window.IsometricMap) window.IsometricMap.destroy();
+  }
+}
+
+function initMapView() {
+  if (!window.IsometricMap || !state.currentStages || state.currentStages.length === 0) return;
+
+  // 先销毁旧的
+  window.IsometricMap.destroy();
+
+  // 初始化新的
+  window.IsometricMap.init('mapContainer', state.currentStages, function (stage, index) {
+    // 点击岛屿显示阶段详情
+    const detail = $('#mapStageDetail');
+    if (detail) {
+      detail.hidden = false;
+      detail.innerHTML = `
+        <h4>阶段 ${index + 1}：${esc(stage.title || '')}</h4>
+        <p><strong>🎯 目标：</strong>${esc(stage.goal || '')}</p>
+        ${stage.actions && stage.actions.length ? `<p><strong>📝 行动：</strong>${stage.actions.map(esc).join('；')}</p>` : ''}
+        ${stage.pitfalls && stage.pitfalls.length ? `<p><strong>⚠️ 避坑：</strong>${stage.pitfalls.map(esc).join('；')}</p>` : ''}
+        ${stage.milestone ? `<p><strong>🏁 里程碑：</strong>${esc(stage.milestone)}</p>` : ''}
+      `;
+    }
+  });
+}
+
 /* ---------- 初始化 ---------- */
 async function init() {
   setupTilt();
@@ -103,6 +153,7 @@ async function init() {
   setupScrollEffects();
   initTheme();
   initMascotAnimation();
+  initMapViewToggle();
   await loadMode();
   await loadScenarios();
   loadHistory();
@@ -666,6 +717,12 @@ function renderTimeline(stages) {
 
     box.appendChild(card);
   });
+
+  // 保存stages供3D地图使用
+  state.currentStages = stages || [];
+  if (state.mapViewActive && window.IsometricMap) {
+    initMapView();
+  }
 }
 
 function updateStageProgress(stages) {

@@ -229,9 +229,20 @@
 
       <!-- 学习路径 -->
       <div class="result-block">
-        <h3 class="result-title">🗺️ 学习路径 <span class="result-sub">分阶段走，每步都可执行 · 点击「避坑与里程碑」看细节</span></h3>
-        <div id="timePlanBox"></div>
-        <div class="timeline-3d" id="timeline"></div>
+        <h3 class="result-title">🗺️ 学习路径 <span class="result-sub">分阶段走，每步都可执行 · 点击「避坑与里程碑」看细节</span>
+          <button class="view-toggle-btn" id="mapViewBtn" title="切换3D地图视图">🌐 3D地图</button>
+        </h3>
+        <!-- 普通视图 -->
+        <div id="normalView">
+          <div id="timePlanBox"></div>
+          <div class="timeline-3d" id="timeline"></div>
+        </div>
+        <!-- 3D地图视图 -->
+        <div id="mapView" hidden>
+          <div class="map-container" id="mapContainer"></div>
+          <div class="map-hint">💡 拖拽旋转 · 滚轮缩放 · 点击岛屿查看阶段详情</div>
+          <div class="map-stage-detail" id="mapStageDetail" hidden></div>
+        </div>
       </div>
 
       <!-- 核心概念 -->
@@ -598,6 +609,7 @@
 
   <script src="/js/app.js"></script>
   <script src="/js/three-scene.js"></script>
+  <script src="/js/isometric-map.js"></script>
   <script src="/js/innovative.js"></script>
 </body>
 </html>
