@@ -1,0 +1,235 @@
+/* ============================================================
+   知遇 ZhiYu · 创新视觉效果 v1
+   3D粒子背景 / 卡片3D倾斜 / 滚动触发动画 / 玻璃拟态 / 3D按钮
+   ============================================================ */
+
+/* ---------- 3D粒子背景 ---------- */
+#particleCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ---------- 玻璃拟态导航栏 ---------- */
+.nav {
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+.nav.scrolled {
+  background: rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+body.dark-mode .nav {
+  background: rgba(20, 20, 30, 0.72) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+body.dark-mode .nav.scrolled {
+  background: rgba(20, 20, 30, 0.85) !important;
+}
+
+/* ---------- 玻璃拟态卡片 ---------- */
+.glass-card {
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08) !important;
+}
+body.dark-mode .glass-card {
+  background: rgba(30, 30, 45, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ---------- 卡片3D倾斜效果 ---------- */
+.tilt-card {
+  transform-style: preserve-3d;
+  transition: transform 0.15s ease-out, box-shadow 0.3s ease;
+  will-change: transform;
+}
+.tilt-card:hover {
+  box-shadow: 0 20px 60px rgba(0, 132, 255, 0.15), 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+}
+.tilt-card .tilt-content {
+  transform: translateZ(30px);
+}
+.tilt-card .tilt-shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.tilt-card:hover .tilt-shine {
+  opacity: 1;
+}
+
+/* ---------- 滚动触发3D动画 ---------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(60px) rotateX(15deg);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+.reveal.revealed {
+  opacity: 1;
+  transform: translateY(0) rotateX(0deg);
+}
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-80px) rotateY(15deg);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-left.revealed {
+  opacity: 1;
+  transform: translateX(0) rotateY(0deg);
+}
+.reveal-right {
+  opacity: 0;
+  transform: translateX(80px) rotateY(-15deg);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-right.revealed {
+  opacity: 1;
+  transform: translateX(0) rotateY(0deg);
+}
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.8) rotateZ(-3deg);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-scale.revealed {
+  opacity: 1;
+  transform: scale(1) rotateZ(0deg);
+}
+
+/* ---------- 3D按钮按压效果 ---------- */
+.btn-3d {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: all 0.15s ease;
+  box-shadow: 0 6px 0 rgba(0, 80, 180, 0.3), 0 8px 20px rgba(0, 132, 255, 0.3);
+}
+.btn-3d:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 rgba(0, 80, 180, 0.3), 0 12px 28px rgba(0, 132, 255, 0.4);
+}
+.btn-3d:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 rgba(0, 80, 180, 0.3), 0 4px 12px rgba(0, 132, 255, 0.3);
+}
+
+/* ---------- 3D翻转卡片（复习卡片增强） ---------- */
+.flip-card-3d {
+  perspective: 1500px;
+}
+.flip-card-3d-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.flip-card-3d.flipped .flip-card-3d-inner {
+  transform: rotateY(180deg);
+}
+.flip-card-3d-front,
+.flip-card-3d-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: inherit;
+}
+.flip-card-3d-back {
+  transform: rotateY(180deg);
+}
+
+/* ---------- 浮动动画 ---------- */
+@keyframes float3d {
+  0%, 100% { transform: translateY(0) rotateX(0deg) rotateY(0deg); }
+  25% { transform: translateY(-10px) rotateX(2deg) rotateY(2deg); }
+  50% { transform: translateY(-5px) rotateX(0deg) rotateY(-2deg); }
+  75% { transform: translateY(-12px) rotateX(-2deg) rotateY(1deg); }
+}
+.float-3d {
+  animation: float3d 6s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+/* ---------- 渐变文字 ---------- */
+.gradient-text {
+  background: linear-gradient(135deg, #0084ff 0%, #9b59ff 50%, #ff6b9d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: gradientShift 4s ease infinite;
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ---------- 光晕效果 ---------- */
+.glow-effect {
+  position: relative;
+}
+.glow-effect::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #0084ff, #9b59ff, #ff6b9d, #0084ff);
+  background-size: 400% 400%;
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: glowRotate 3s ease infinite;
+  filter: blur(8px);
+}
+.glow-effect:hover::before {
+  opacity: 0.6;
+}
+@keyframes glowRotate {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ---------- 页面整体3D透视 ---------- */
+.main-content {
+  perspective: 1500px;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 768px) {
+  .tilt-card:hover {
+    transform: none !important;
+  }
+  .reveal, .reveal-left, .reveal-right, .reveal-scale {
+    transform: none;
+    opacity: 1;
+  }
+}
