@@ -393,3 +393,9 @@ body.dark-mode .ask-loading {
   z-index: 1000;
 }
 .brand-mascot-tooltip.show { opacity: 1; }
+
+/* ---------- 深色模式文字清晰度增强 ---------- */
+body.dark-mode .hero h1 {
+  color: #ffffff !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
