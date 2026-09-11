@@ -1,9 +1,8 @@
 /* ============================================================
-   知遇 ZhiYu · 沉浸式3D滚动背景 v2 (高交互创新版)
-   灵感：东方明珠沉浸滚动 / Galaxy Portfolio / GitHub Planet
+   知遇 ZhiYu · 沉浸式3D滚动背景 v3 (无岛屿版)
    - 滚动驱动电影感镜头路径
-   - 知识岛屿 + 连接光束
-   - 鼠标视差 + 粒子互动
+   - 粒子互动 + 水面波动 + 灯光呼吸
+   - 与全站艺术背景图融合
    ============================================================ */
 (function () {
   'use strict';
@@ -37,121 +36,17 @@
   const p3 = new THREE.PointLight(0x00c9a7, 0.5, 40);
   p3.position.set(0, 12, -50);
   scene.add(p3);
-  const islands = [];
-  const islandColors = [0x0084ff, 0x9b59ff, 0xff6b9d, 0x00c9a7, 0xffa500, 0xef4444];
-  const beams = [];
-  function createIsland(x, z, color, scale = 1) {
-    const group = new THREE.Group();
-    const baseGeo = new THREE.CylinderGeometry(2.8 * scale, 2.2 * scale, 1.6 * scale, 8);
-    const baseMat = new THREE.MeshLambertMaterial({ color: 0x7a6a4f });
-    const base = new THREE.Mesh(baseGeo, baseMat);
-    base.position.y = -0.8 * scale;
-    base.castShadow = true;
-    group.add(base);
-    const topGeo = new THREE.CylinderGeometry(2.9 * scale, 2.9 * scale, 0.45 * scale, 8);
-    const topMat = new THREE.MeshLambertMaterial({ color: 0x6ecf6a });
-    const top = new THREE.Mesh(topGeo, topMat);
-    top.position.y = 0.2 * scale;
-    top.castShadow = true;
-    group.add(top);
-    const types = ['box', 'cylinder', 'cone', 'sphere'];
-    const type = types[Math.floor(Math.random() * types.length)];
-    let bGeo;
-    if (type === 'box') bGeo = new THREE.BoxGeometry(1.4 * scale, 2.4 * scale, 1.4 * scale);
-    else if (type === 'cylinder') bGeo = new THREE.CylinderGeometry(0.7 * scale, 0.7 * scale, 2.8 * scale, 10);
-    else if (type === 'cone') bGeo = new THREE.ConeGeometry(1.1 * scale, 2.8 * scale, 6);
-    else bGeo = new THREE.SphereGeometry(1.1 * scale, 14, 14);
-    const bMat = new THREE.MeshLambertMaterial({
-      color: color,
-      emissive: color,
-      emissiveIntensity: 0.2,
-    });
-    const building = new THREE.Mesh(bGeo, bMat);
-    building.position.y = 1.6 * scale;
-    building.castShadow = true;
-    group.add(building);
-    const ringGeo = new THREE.TorusGeometry(3.1 * scale, 0.07 * scale, 8, 36);
-    const ringMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.55 });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = 0.4 * scale;
-    group.add(ring);
-    for (let i = 0; i < 3; i++) {
-      const tree = createSmallTree(scale * 0.55);
-      const a = (i / 3) * Math.PI * 2 + Math.random();
-      tree.position.set(Math.cos(a) * 1.9 * scale, 0.4 * scale, Math.sin(a) * 1.9 * scale);
-      group.add(tree);
-    }
-    group.position.set(x, Math.random() * 1.5, z);
-    group.userData = {
-      baseY: group.position.y,
-      floatSpeed: 0.25 + Math.random() * 0.35,
-      floatOffset: Math.random() * Math.PI * 2,
-      ring: ring,
-      color: color,
-    };
-    scene.add(group);
-    islands.push(group);
-    return group;
-  }
-  function createSmallTree(scale) {
-    const tree = new THREE.Group();
-    const trunk = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.09 * scale, 0.13 * scale, 0.7 * scale, 6),
-      new THREE.MeshLambertMaterial({ color: 0x8b4513 })
-    );
-    trunk.position.y = 0.35 * scale;
-    tree.add(trunk);
-    const leaves = new THREE.Mesh(
-      new THREE.ConeGeometry(0.45 * scale, 0.9 * scale, 6),
-      new THREE.MeshLambertMaterial({ color: 0x228b22 })
-    );
-    leaves.position.y = 1.05 * scale;
-    tree.add(leaves);
-    return tree;
-  }
-  const islandData = [
-    [-14, -8, 0, 1.15],
-    [11, -18, 1, 1.0],
-    [-9, -28, 2, 1.25],
-    [13, -38, 3, 1.05],
-    [-6, -48, 4, 1.35],
-    [8, -58, 5, 1.1],
-    [0, -68, 0, 1.5],
-  ];
-  islandData.forEach(([x, z, ci, s]) => createIsland(x, z, islandColors[ci], s));
-  for (let i = 0; i < islands.length - 1; i++) {
-    const a = islands[i].position;
-    const b = islands[i + 1].position;
-    const geo = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(a.x, a.y + 2, a.z),
-      new THREE.Vector3(b.x, b.y + 2, b.z),
-    ]);
-    const mat = new THREE.LineBasicMaterial({
-      color: islandColors[i % islandColors.length],
-      transparent: true,
-      opacity: 0.25,
-    });
-    const line = new THREE.Line(geo, mat);
-    scene.add(line);
-    beams.push({ line, i });
-  }
-  const water = new THREE.Mesh(
-    new THREE.PlaneGeometry(220, 220, 24, 24),
-    new THREE.MeshLambertMaterial({ color: 0x5eb0ff, transparent: true, opacity: 0.18 })
-  );
-  water.rotation.x = -Math.PI / 2;
-  water.position.y = -3.5;
-  scene.add(water);
-  const particleCount = 120;
+  // 粒子系统
+  const particleCount = 150;
   const pGeo = new THREE.BufferGeometry();
   const positions = new Float32Array(particleCount * 3);
   const colors = new Float32Array(particleCount * 3);
+  const islandColors = [0x0084ff, 0x9b59ff, 0xff6b9d, 0x00c9a7, 0xffa500, 0xef4444];
   const palette = islandColors.map((c) => new THREE.Color(c));
   for (let i = 0; i < particleCount; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * 90;
-    positions[i * 3 + 1] = Math.random() * 28;
-    positions[i * 3 + 2] = -Math.random() * 90;
+    positions[i * 3] = (Math.random() - 0.5) * 120;
+    positions[i * 3 + 1] = Math.random() * 35;
+    positions[i * 3 + 2] = -Math.random() * 100;
     const col = palette[Math.floor(Math.random() * palette.length)];
     colors[i * 3] = col.r;
     colors[i * 3 + 1] = col.g;
@@ -162,15 +57,47 @@
   const particles = new THREE.Points(
     pGeo,
     new THREE.PointsMaterial({
-      size: 0.28,
+      size: 0.32,
       vertexColors: true,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.8,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     })
   );
   scene.add(particles);
+  // 水面
+  const water = new THREE.Mesh(
+    new THREE.PlaneGeometry(250, 250, 32, 32),
+    new THREE.MeshLambertMaterial({ color: 0x5eb0ff, transparent: true, opacity: 0.15 })
+  );
+  water.rotation.x = -Math.PI / 2;
+  water.position.y = -3.5;
+  scene.add(water);
+  // 漂浮光球（增加氛围感）
+  const floatOrbs = [];
+  for (let i = 0; i < 8; i++) {
+    const orbGeo = new THREE.SphereGeometry(0.3 + Math.random() * 0.5, 12, 12);
+    const orbMat = new THREE.MeshBasicMaterial({
+      color: islandColors[i % islandColors.length],
+      transparent: true,
+      opacity: 0.4,
+    });
+    const orb = new THREE.Mesh(orbGeo, orbMat);
+    orb.position.set(
+      (Math.random() - 0.5) * 60,
+      2 + Math.random() * 15,
+      -10 - Math.random() * 60
+    );
+    orb.userData = {
+      baseY: orb.position.y,
+      floatSpeed: 0.3 + Math.random() * 0.4,
+      floatOffset: Math.random() * Math.PI * 2,
+      driftSpeed: 0.005 + Math.random() * 0.01,
+    };
+    scene.add(orb);
+    floatOrbs.push(orb);
+  }
   let scrollProgress = 0;
   let targetScroll = 0;
   let mouseX = 0;
@@ -206,27 +133,24 @@
     camera.position.y += (targetY - camera.position.y) * 0.06;
     camera.position.x += (targetX - camera.position.x) * 0.06;
     camera.lookAt(mouseX * 2, 4 + scrollProgress * 2, targetZ - 14);
-    islands.forEach((island) => {
-      const { baseY, floatSpeed, floatOffset, ring } = island.userData;
-      island.position.y = baseY + Math.sin(time * floatSpeed + floatOffset) * 0.45;
-      island.rotation.y = Math.sin(time * 0.18 + floatOffset) * 0.12;
-      if (ring) ring.rotation.z = time * 0.35;
-    });
-    beams.forEach(({ line, i }) => {
-      const a = islands[i].position;
-      const b = islands[i + 1].position;
-      const pos = line.geometry.attributes.position;
-      pos.setXYZ(0, a.x, a.y + 2, a.z);
-      pos.setXYZ(1, b.x, b.y + 2, b.z);
-      pos.needsUpdate = true;
-    });
+    // 粒子旋转
     particles.rotation.y = time * 0.025;
+    // 水面波动
     water.position.y = -3.5 + Math.sin(time * 0.4) * 0.12;
+    // 灯光呼吸
     p1.intensity = 0.7 + Math.sin(time * 1.2) * 0.15;
     p2.intensity = 0.6 + Math.sin(time * 0.9 + 1) * 0.15;
+    p3.intensity = 0.5 + Math.sin(time * 0.7 + 2) * 0.12;
+    // 漂浮光球
+    floatOrbs.forEach((orb, i) => {
+      const ud = orb.userData;
+      orb.position.y = ud.baseY + Math.sin(time * ud.floatSpeed + ud.floatOffset) * 1.2;
+      orb.position.x += Math.sin(time * 0.15 + ud.floatOffset) * ud.driftSpeed;
+      orb.material.opacity = 0.3 + Math.sin(time * 0.8 + ud.floatOffset) * 0.15;
+    });
     renderer.render(scene, camera);
   }
   animate();
   onScroll();
-  console.log('🌊 知遇沉浸式3D滚动背景 v2 已加载（高交互版）');
+  console.log('🌊 知遇沉浸式3D背景 v3 已加载（无岛屿版，粒子+光球+水面+灯光）');
 })();
