@@ -136,30 +136,7 @@
     });
   }
 
-  /* ========== 3. 滚动触发动画 ========== */
-  function initScrollReveal() {
-    const reveals = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale');
-    if (reveals.length === 0) return;
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry, index) => {
-        if (entry.isIntersecting) {
-          // 延迟动画，创造错落感
-          setTimeout(() => {
-            entry.target.classList.add('revealed');
-          }, index * 100);
-          observer.unobserve(entry.target);
-        }
-      });
-    }, {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px',
-    });
-
-    reveals.forEach(el => observer.observe(el));
-  }
-
-  /* ========== 4. 导航栏滚动效果 ========== */
+  /* ========== 3. 导航栏滚动效果 ========== */
   function initNavScroll() {
     const nav = document.querySelector('.nav');
     if (!nav) return;
@@ -223,13 +200,6 @@
       btn.classList.add('btn-3d');
     });
 
-    // 给区块添加滚动动画
-    const sections = document.querySelectorAll('.hero-copy, .hero-3d, .section-title, .stages-container, .concepts-container, .flashcards-container, .about-section');
-    sections.forEach((section, index) => {
-      const types = ['reveal', 'reveal-left', 'reveal-right', 'reveal-scale'];
-      section.classList.add(types[index % types.length]);
-    });
-
     // 给标题添加渐变文字
     const titles = document.querySelectorAll('.hero-title, .section-title h2');
     titles.forEach(title => {
@@ -256,7 +226,6 @@
     // 然后初始化各种效果
     initParticleBackground();
     initTiltCards();
-    initScrollReveal();
     initNavScroll();
     initMouseParallax();
     initFlipCards();

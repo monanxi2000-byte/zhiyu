@@ -77,50 +77,6 @@ body.dark-mode .glass-card {
   opacity: 1;
 }
 
-/* ---------- 滚动触发3D动画 ---------- */
-.reveal {
-  opacity: 0;
-  transform: translateY(60px) rotateX(15deg);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-style: preserve-3d;
-  perspective: 1000px;
-}
-.reveal.revealed {
-  opacity: 1;
-  transform: translateY(0) rotateX(0deg);
-}
-.reveal-left {
-  opacity: 0;
-  transform: translateX(-80px) rotateY(15deg);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.reveal-left.revealed {
-  opacity: 1;
-  transform: translateX(0) rotateY(0deg);
-}
-.reveal-right {
-  opacity: 0;
-  transform: translateX(80px) rotateY(-15deg);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.reveal-right.revealed {
-  opacity: 1;
-  transform: translateX(0) rotateY(0deg);
-}
-.reveal-scale {
-  opacity: 0;
-  transform: scale(0.8) rotateZ(-3deg);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.reveal-scale.revealed {
-  opacity: 1;
-  transform: scale(1) rotateZ(0deg);
-}
-
 /* ---------- 3D按钮按压效果 ---------- */
 .btn-3d {
   position: relative;
@@ -227,9 +183,5 @@ body.dark-mode .glass-card {
 @media (max-width: 768px) {
   .tilt-card:hover {
     transform: none !important;
-  }
-  .reveal, .reveal-left, .reveal-right, .reveal-scale {
-    transform: none;
-    opacity: 1;
   }
 }
