@@ -869,3 +869,90 @@ body.dark-mode .k2d-ear {
   color: #ff6b6b;
   font-weight: 600;
 }
+
+/* ---------- 浅色模式下小字体清晰度增强 ---------- */
+:root {
+  --text-3: #6b7280; /* 从 #8a919f 改深，确保浅色模式下可读 */
+}
+
+/* 结果标题副标题 */
+.result-sub {
+  color: #5c6672 !important;
+  font-weight: 500;
+}
+
+/* 品牌英文名 */
+.brand-en {
+  color: #6b7280 !important;
+}
+
+/* 资料来源标签 */
+.source-kind {
+  color: #4b5563 !important;
+  font-weight: 600;
+}
+
+/* 阶段建议用时 */
+.stage-timehint {
+  color: #6b7280 !important;
+  font-weight: 500;
+}
+
+/* 技能标签 */
+.skill-tag {
+  color: #374151 !important;
+  font-weight: 500;
+}
+
+/* 知乎资源元信息 */
+.zhihu-res-meta {
+  color: #6b7280 !important;
+  font-weight: 500;
+}
+
+/* 知乎推荐元信息 */
+.zhihu-rec-meta {
+  color: #6b7280 !important;
+  font-weight: 500;
+}
+
+/* 相关话题热度 */
+.related-topic-heat {
+  color: #dc2626 !important;
+  font-weight: 600;
+}
+
+/* 知乎推荐摘要 */
+.zhihu-rec-summary {
+  color: #4b5563 !important;
+}
+
+/* 资料卡片描述 */
+.source-card p {
+  color: #4b5563 !important;
+}
+
+/* 阶段目标 */
+.stage-goal {
+  color: #374151 !important;
+}
+
+/* 阶段动作列表 */
+.stage-actions li {
+  color: #374151 !important;
+}
+
+/* 细节行文字 */
+.detail-row {
+  color: #374151 !important;
+}
+
+/* 元信息栏 */
+.meta-chip {
+  color: #4b5563 !important;
+  font-weight: 500;
+}
+
+.meta-time {
+  color: #6b7280 !important;
+}
