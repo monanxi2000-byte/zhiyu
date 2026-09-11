@@ -218,6 +218,139 @@
     inputs.forEach(input => input.classList.add('glow-effect'));
   }
 
+  /* ========== 6. 滚动进度条 ========== */
+  function initScrollProgress() {
+    const bar = document.createElement('div');
+    bar.className = 'scroll-progress-bar';
+    document.body.appendChild(bar);
+
+    function update() {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+      bar.style.width = progress + '%';
+    }
+
+    window.addEventListener('scroll', update, { passive: true });
+    update();
+  }
+
+  /* ========== 7. 波纹点击效果 ========== */
+  function initRippleEffect() {
+    document.addEventListener('click', function (e) {
+      const target = e.target.closest('.btn-primary, .btn-secondary, .mode-btn, .about-tab-btn, .scenario-chip, .stage-card, .concept-card, .flashcard, .tilt-card, button');
+      if (!target) return;
+
+      const rect = target.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      const size = Math.max(rect.width, rect.height);
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+
+      ripple.style.cssText = `
+        position: absolute;
+        width: ${size}px;
+        height: ${size}px;
+        left: ${x}px;
+        top: ${y}px;
+        background: radial-gradient(circle, rgba(255,255,255,0.5) 0%, transparent 70%);
+        border-radius: 50%;
+        transform: scale(0);
+        animation: ripple-anim 0.6s ease-out;
+        pointer-events: none;
+        z-index: 10;
+      `;
+
+      const originalPosition = getComputedStyle(target).position;
+      if (originalPosition === 'static') {
+        target.style.position = 'relative';
+      }
+      target.style.overflow = 'hidden';
+      target.appendChild(ripple);
+
+      setTimeout(() => ripple.remove(), 600);
+    });
+  }
+
+  /* ========== 8. 打字机效果 ========== */
+  function initTypewriter() {
+    const subtitle = document.querySelector('.hero-sub');
+    if (!subtitle) return;
+
+    const text = subtitle.textContent;
+    subtitle.textContent = '';
+    subtitle.style.visibility = 'visible';
+
+    let index = 0;
+    const speed = 35;
+
+    function type() {
+      if (index < text.length) {
+        subtitle.textContent += text.charAt(index);
+        index++;
+        setTimeout(type, speed);
+      }
+    }
+
+    // 延迟开始，等页面加载
+    setTimeout(type, 800);
+  }
+
+  /* ========== 9. 磁力按钮 ========== */
+  function initMagneticButton() {
+    const btn = document.getElementById('guideBtn');
+    if (!btn) return;
+
+    const strength = 0.15;
+
+    btn.addEventListener('mousemove', function (e) {
+      const rect = btn.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+      btn.style.transform = `translate(${x * strength}px, ${y * strength}px)`;
+    });
+
+    btn.addEventListener('mouseleave', function () {
+      btn.style.transform = '';
+    });
+  }
+
+  /* ========== 10. 数字计数动画 ========== */
+  function initCountUp() {
+    // 找到关于我们部分的统计数字
+    const stats = document.querySelectorAll('.about-stat-number');
+    if (stats.length === 0) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          const target = parseInt(el.dataset.target, 10);
+          if (isNaN(target)) return;
+
+          let current = 0;
+          const duration = 1500;
+          const steps = 60;
+          const increment = target / steps;
+          const stepTime = duration / steps;
+
+          const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+              current = target;
+              clearInterval(timer);
+            }
+            el.textContent = Math.floor(current) + (el.dataset.suffix || '');
+          }, stepTime);
+
+          observer.unobserve(el);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    stats.forEach(stat => observer.observe(stat));
+  }
+
   /* ========== 初始化 ========== */
   function init() {
     // 先添加类名
@@ -229,6 +362,11 @@
     initNavScroll();
     initMouseParallax();
     initFlipCards();
+    initScrollProgress();
+    initRippleEffect();
+    initTypewriter();
+    initMagneticButton();
+    initCountUp();
 
     console.log('🎨 知遇创新视觉效果已加载');
   }

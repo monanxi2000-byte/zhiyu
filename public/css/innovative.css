@@ -490,9 +490,83 @@ body.dark-mode .k2d-ear {
   border-bottom-color: #e8e8e8;
 }
 
+/* ---------- 滚动进度条 ---------- */
+.scroll-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0084ff, #9b59ff, #ff6b9d);
+  z-index: 9999;
+  transition: width 0.1s ease-out;
+  box-shadow: 0 0 10px rgba(155, 89, 255, 0.5);
+}
+
+/* ---------- 波纹动画 ---------- */
+@keyframes ripple-anim {
+  to {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* ---------- 磁力按钮过渡 ---------- */
+#guideBtn {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+/* ---------- 打字机光标 ---------- */
+.hero-sub::after {
+  content: '|';
+  animation: cursor-blink 0.8s infinite;
+  color: #9b59ff;
+  font-weight: 300;
+}
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* ---------- 统计数字 ---------- */
+.about-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 30px;
+  padding: 25px;
+  background: linear-gradient(135deg, rgba(0,132,255,0.05) 0%, rgba(155,89,255,0.05) 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(155,89,255,0.1);
+}
+.about-stat {
+  text-align: center;
+}
+.about-stat-number {
+  font-size: 2.2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #0084ff, #9b59ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+.about-stat-label {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 5px;
+}
+
 /* ---------- 响应式 ---------- */
 @media (max-width: 768px) {
   .tilt-card:hover {
     transform: none !important;
+  }
+  .about-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    padding: 15px;
+  }
+  .about-stat-number {
+    font-size: 1.6rem;
   }
 }
