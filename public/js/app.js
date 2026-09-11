@@ -111,7 +111,7 @@ function toggleMapView() {
 
   state.mapViewActive = !state.mapViewActive;
   btn.classList.toggle('active', state.mapViewActive);
-  btn.textContent = state.mapViewActive ? '📋 列表视图' : '🌐 3D地图';
+  btn.textContent = state.mapViewActive ? '📋 列表视图' : '🌌 知识星球';
 
   normalView.hidden = state.mapViewActive;
   mapView.hidden = !state.mapViewActive;
@@ -821,6 +821,11 @@ function renderDebates(cmp) {
       consBox.appendChild(item);
     });
   }
+
+  // 观点对照出现时触发流星数据流视觉反馈
+  if (typeof window.ZhiYuMeteor !== 'undefined' && debates.length) {
+    setTimeout(() => window.ZhiYuMeteor.burst('#debateBlock'), 200);
+  }
 }
 
 function renderSources(sources, live) {
@@ -1368,6 +1373,8 @@ function toggleTheme() {
   const isDark = document.body.classList.toggle('dark-mode');
   try { localStorage.setItem('zhiyu_theme', isDark ? 'dark' : 'light'); } catch { /* ignore */ }
   updateThemeButton(isDark);
+  // 通知 3D 场景主题变化
+  window.dispatchEvent(new CustomEvent('zhiyu-theme-change', { detail: { isDark } }));
 }
 
 function updateThemeButton(isDark) {
@@ -1616,3 +1623,60 @@ function downloadShareImage() {
 
 /* ---------- 启动 ---------- */
 document.addEventListener('DOMContentLoaded', init);
+
+/* ========== 观点对照 · 流星/数据流爆发效果 ========== */
+window.ZhiYuMeteor = {
+  burst: function (containerSelector) {
+    const container = document.querySelector(containerSelector || '#debateList');
+    if (!container) return;
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;';
+    const parent = container.parentElement || container;
+    if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+    parent.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = parent.clientWidth;
+    const h = parent.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    const meteors = [];
+    const colors = ['#0084ff', '#9b59ff', '#ff6b9d', '#00c9a7', '#ffa500'];
+    for (let i = 0; i < 18; i++) {
+      meteors.push({
+        x: Math.random() * w,
+        y: -20 - Math.random() * 80,
+        len: 40 + Math.random() * 60,
+        speed: 4 + Math.random() * 6,
+        angle: Math.PI / 4 + (Math.random() - 0.5) * 0.3,
+        color: colors[i % colors.length],
+        alpha: 0.9,
+      });
+    }
+    let frame = 0;
+    function draw() {
+      ctx.clearRect(0, 0, w, h);
+      meteors.forEach((m) => {
+        m.x += Math.cos(m.angle) * m.speed;
+        m.y += Math.sin(m.angle) * m.speed;
+        m.alpha *= 0.985;
+        ctx.strokeStyle = m.color;
+        ctx.globalAlpha = m.alpha;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(m.x, m.y);
+        ctx.lineTo(m.x - Math.cos(m.angle) * m.len, m.y - Math.sin(m.angle) * m.len);
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+      frame++;
+      if (frame < 90) {
+        requestAnimationFrame(draw);
+      } else {
+        canvas.remove();
+      }
+    }
+    draw();
+  },
+};

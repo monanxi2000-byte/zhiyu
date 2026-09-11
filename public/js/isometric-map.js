@@ -1,379 +1,504 @@
 /* ============================================================
-   知遇 ZhiYu · 3D等距学习路径地图
-   参考 Isometria 等距视角小岛 + 程序化生成
+   知遇 ZhiYu · 知识星球系统 v2 (高交互创新版)
+   灵感来源：GitHub Planet / Repo Planets / Isometria / Galaxy Portfolio
+   - 中央知识核心 + 轨道行星（学习阶段）
+   - 悬停放大/高亮、点击聚焦相机、进度发光
+   - 鼠标交互粒子、能量连接线、自动/手动轨道
    ============================================================ */
-
 (function () {
   'use strict';
-
   let scene, camera, renderer, controls;
-  let islands = [];
-  let particles;
+  let core, planets = [], orbitLines = [], energyLines = [];
+  let particles, particlePositions, particleVelocities;
   let raycaster, mouse;
   let isInitialized = false;
   let currentStages = [];
-  let onIslandClick = null;
-
-  /* ========== 初始化 ========== */
+  let onPlanetClick = null;
+  let focusedPlanet = null;
+  let clock = typeof THREE !== 'undefined' ? new THREE.Clock() : null;
+  let hoverPlanet = null;
+  const COLORS = [0x0084ff, 0x9b59ff, 0xff6b9d, 0x00c9a7, 0xffa500, 0xef4444, 0x06b6d4];
   function init(containerId, stages, clickCallback) {
     const container = document.getElementById(containerId);
     if (!container || typeof THREE === 'undefined') return;
-
+    destroy();
     currentStages = stages || [];
-    onIslandClick = clickCallback;
-
-    // 场景
+    onPlanetClick = clickCallback;
+    focusedPlanet = null;
+    hoverPlanet = null;
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf0f4ff);
-    scene.fog = new THREE.Fog(0xf0f4ff, 30, 80);
-
-    // 相机（等距视角）
-    const aspect = container.clientWidth / container.clientHeight;
-    camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
-    camera.position.set(20, 20, 20);
+    scene.background = new THREE.Color(0x0a0e1a);
+    scene.fog = new THREE.FogExp2(0x0a0e1a, 0.012);
+    window._zhiyuPlanetScene = scene;
+    const aspect = container.clientWidth / Math.max(container.clientHeight, 1);
+    camera = new THREE.PerspectiveCamera(55, aspect, 0.1, 500);
+    camera.position.set(0, 18, 32);
     camera.lookAt(0, 0, 0);
-
-    // 渲染器
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    container.innerHTML = '';
     container.appendChild(renderer.domElement);
-
-    // 轨道控制
-    if (typeof OrbitControls !== 'undefined') {
-      controls = new OrbitControls(camera, renderer.domElement);
+    if (typeof THREE.OrbitControls !== 'undefined' || typeof OrbitControls !== 'undefined') {
+      const OC = THREE.OrbitControls || OrbitControls;
+      controls = new OC(camera, renderer.domElement);
       controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.maxPolarAngle = Math.PI / 2.5;
-      controls.minDistance = 10;
-      controls.maxDistance = 50;
+      controls.dampingFactor = 0.06;
+      controls.maxPolarAngle = Math.PI * 0.48;
+      controls.minDistance = 12;
+      controls.maxDistance = 60;
       controls.autoRotate = true;
-      controls.autoRotateSpeed = 0.5;
+      controls.autoRotateSpeed = 0.35;
+      controls.enablePan = false;
     }
-
-    // 光照
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(10, 20, 10);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
-    scene.add(directionalLight);
-
-    const pointLight = new THREE.PointLight(0x9b59ff, 0.5, 50);
-    pointLight.position.set(-10, 10, -10);
-    scene.add(pointLight);
-
-    // 射线检测（点击）
+    const ambient = new THREE.AmbientLight(0x334466, 0.45);
+    scene.add(ambient);
+    const key = new THREE.DirectionalLight(0xffffff, 1.1);
+    key.position.set(15, 25, 12);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    scene.add(key);
+    const fill = new THREE.PointLight(0x0084ff, 1.2, 80);
+    fill.position.set(-18, 8, -10);
+    scene.add(fill);
+    const rim = new THREE.PointLight(0x9b59ff, 0.9, 60);
+    rim.position.set(12, 6, -15);
+    scene.add(rim);
+    const coreLight = new THREE.PointLight(0xffffff, 1.8, 25);
+    coreLight.position.set(0, 0, 0);
+    scene.add(coreLight);
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
-
-    // 创建岛屿
-    createIslands();
-
-    // 创建粒子
+    createCore();
+    createPlanets();
+    createOrbitRings();
     createParticles();
-
-    // 创建水面
-    createWater();
-
-    // 事件
-    renderer.domElement.addEventListener('click', onMouseClick);
+    createStarfield();
+    renderer.domElement.addEventListener('pointermove', onPointerMove);
+    renderer.domElement.addEventListener('click', onClick);
+    renderer.domElement.addEventListener('pointerleave', () => {
+      if (hoverPlanet) {
+        hoverPlanet.userData.targetScale = 1;
+        hoverPlanet = null;
+      }
+      if (controls) controls.autoRotate = !focusedPlanet;
+    });
     window.addEventListener('resize', onResize);
-
     isInitialized = true;
     animate();
   }
-
-  /* ========== 创建漂浮岛屿 ========== */
-  function createIslands() {
-    const stageCount = Math.max(currentStages.length, 4);
-    const colors = [0x0084ff, 0x9b59ff, 0xff6b9d, 0x00c9a7];
-    const icons = ['📚', '🔧', '⚡', '🎯'];
-
-    for (let i = 0; i < stageCount; i++) {
-      const angle = (i / stageCount) * Math.PI * 2;
-      const radius = 12;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-      const y = Math.sin(i * 1.5) * 2;
-
-      const island = createIsland(i, colors[i % colors.length], icons[i % icons.length]);
-      island.position.set(x, y, z);
-      island.userData = {
-        index: i,
-        stage: currentStages[i] || { title: `阶段 ${i + 1}`, description: '' },
-        baseY: y,
-        floatSpeed: 0.5 + Math.random() * 0.5,
-        floatOffset: Math.random() * Math.PI * 2,
-      };
-      scene.add(island);
-      islands.push(island);
+  function createCore() {
+    const group = new THREE.Group();
+    const coreGeo = new THREE.IcosahedronGeometry(2.2, 2);
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: 0x4488ff,
+      emissiveIntensity: 0.9,
+      metalness: 0.3,
+      roughness: 0.2,
+    });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    coreMesh.castShadow = true;
+    group.add(coreMesh);
+    const shellGeo = new THREE.IcosahedronGeometry(2.8, 1);
+    const shellMat = new THREE.MeshStandardMaterial({
+      color: 0x66aaff,
+      transparent: true,
+      opacity: 0.25,
+      side: THREE.DoubleSide,
+    });
+    group.add(new THREE.Mesh(shellGeo, shellMat));
+    for (let i = 0; i < 3; i++) {
+      const ringGeo = new THREE.TorusGeometry(3.4 + i * 0.35, 0.04, 8, 64);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: i === 0 ? 0x0084ff : i === 1 ? 0x9b59ff : 0x00c9a7,
+        transparent: true,
+        opacity: 0.7,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2 + (i - 1) * 0.4;
+      ring.rotation.y = i * 0.6;
+      group.add(ring);
+      group.userData['ring' + i] = ring;
+    }
+    const label = makeTextSprite('知识核心', '#ffffff', 160);
+    label.position.set(0, 4.2, 0);
+    label.scale.set(6, 1.8, 1);
+    group.add(label);
+    scene.add(group);
+    core = group;
+  }
+  function createPlanets() {
+    planets = [];
+    const count = Math.max(currentStages.length, 3);
+    for (let i = 0; i < count; i++) {
+      const stage = currentStages[i] || { title: `阶段 ${i + 1}`, description: '' };
+      const color = COLORS[i % COLORS.length];
+      const angle = (i / count) * Math.PI * 2 - Math.PI / 2;
+      const radius = 11 + (i % 3) * 1.8;
+      const size = 1.3 + Math.min(1, (stage.title || '').length / 20) * 0.4;
+      const planet = createPlanet(i, color, size, stage);
+      planet.userData.orbitRadius = radius;
+      planet.userData.orbitSpeed = 0.08 + i * 0.015;
+      planet.userData.orbitAngle = angle;
+      planet.userData.baseY = (i % 2 === 0 ? 1 : -1) * (0.8 + Math.random() * 1.2);
+      planet.userData.targetScale = 1;
+      planet.userData.currentScale = 1;
+      planet.userData.index = i;
+      planet.userData.stage = stage;
+      planet.userData.color = color;
+      planet.position.set(
+        Math.cos(angle) * radius,
+        planet.userData.baseY,
+        Math.sin(angle) * radius
+      );
+      scene.add(planet);
+      planets.push(planet);
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        planet.position.clone(),
+      ]);
+      const lineMat = new THREE.LineBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.35,
+      });
+      const line = new THREE.Line(lineGeo, lineMat);
+      line.userData.planetIndex = i;
+      scene.add(line);
+      energyLines.push(line);
     }
   }
-
-  /* ========== 创建单个岛屿 ========== */
-  function createIsland(index, color, icon) {
+  function createPlanet(index, color, size, stage) {
     const group = new THREE.Group();
-
-    // 岛屿底座（圆柱）
-    const baseGeo = new THREE.CylinderGeometry(3, 2.5, 1.5, 8);
-    const baseMat = new THREE.MeshLambertMaterial({ color: 0x8b7355 });
-    const base = new THREE.Mesh(baseGeo, baseMat);
-    base.position.y = -0.75;
-    base.castShadow = true;
-    base.receiveShadow = true;
-    group.add(base);
-
-    // 岛屿顶部（草地）
-    const topGeo = new THREE.CylinderGeometry(3, 3, 0.5, 8);
-    const topMat = new THREE.MeshLambertMaterial({ color: 0x7ec850 });
-    const top = new THREE.Mesh(topGeo, topMat);
-    top.position.y = 0.25;
-    top.castShadow = true;
-    top.receiveShadow = true;
-    group.add(top);
-
-    // 中央建筑（阶段标志）
-    const buildingGeo = new THREE.BoxGeometry(1.5, 2, 1.5);
-    const buildingMat = new THREE.MeshLambertMaterial({ color: color });
-    const building = new THREE.Mesh(buildingGeo, buildingMat);
-    building.position.y = 1.5;
-    building.castShadow = true;
-    group.add(building);
-
-    // 建筑顶部装饰
-    const roofGeo = new THREE.ConeGeometry(1.2, 1, 4);
-    const roofMat = new THREE.MeshLambertMaterial({ color: color, emissive: color, emissiveIntensity: 0.2 });
-    const roof = new THREE.Mesh(roofGeo, roofMat);
-    roof.position.y = 3;
-    roof.rotation.y = Math.PI / 4;
-    roof.castShadow = true;
-    group.add(roof);
-
-    // 发光环
-    const ringGeo = new THREE.TorusGeometry(3.2, 0.1, 8, 32);
-    const ringMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.6 });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = 0.5;
-    group.add(ring);
-    group.userData.ring = ring;
-
-    // 阶段编号（用Sprite显示文字）
-    const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
-    ctx.font = 'bold 80px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(index + 1, 64, 64);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
-    const sprite = new THREE.Sprite(spriteMat);
-    sprite.position.set(0, 4.5, 0);
-    sprite.scale.set(2, 2, 1);
-    group.add(sprite);
-
-    // 小树装饰
-    for (let i = 0; i < 3; i++) {
-      const tree = createTree();
-      const angle = (i / 3) * Math.PI * 2 + 0.5;
-      tree.position.set(Math.cos(angle) * 2, 0.5, Math.sin(angle) * 2);
-      tree.scale.set(0.6, 0.6, 0.6);
-      group.add(tree);
+    const geo = new THREE.SphereGeometry(size, 32, 32);
+    const mat = new THREE.MeshStandardMaterial({
+      color: color,
+      emissive: color,
+      emissiveIntensity: 0.35,
+      metalness: 0.4,
+      roughness: 0.35,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    group.userData.mesh = mesh;
+    const atmoGeo = new THREE.SphereGeometry(size * 1.18, 24, 24);
+    const atmoMat = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: 0.18,
+      side: THREE.BackSide,
+    });
+    group.add(new THREE.Mesh(atmoGeo, atmoMat));
+    if (index % 2 === 0) {
+      const ringGeo = new THREE.TorusGeometry(size * 1.55, 0.08, 8, 48);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.55,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2.3;
+      group.add(ring);
+      group.userData.ring = ring;
     }
-
+    const numSprite = makeTextSprite(String(index + 1), '#ffffff', 90);
+    numSprite.position.set(0, size + 1.1, 0);
+    numSprite.scale.set(1.6, 1.6, 1);
+    group.add(numSprite);
+    const title = (stage.title || `阶段${index + 1}`).slice(0, 8);
+    const titleSprite = makeTextSprite(title, '#' + color.toString(16).padStart(6, '0'), 140);
+    titleSprite.position.set(0, size + 2.3, 0);
+    titleSprite.scale.set(5.5, 1.5, 1);
+    group.add(titleSprite);
     return group;
   }
-
-  /* ========== 创建小树 ========== */
-  function createTree() {
-    const tree = new THREE.Group();
-
-    const trunkGeo = new THREE.CylinderGeometry(0.1, 0.15, 0.8, 6);
-    const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
-    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-    trunk.position.y = 0.4;
-    trunk.castShadow = true;
-    tree.add(trunk);
-
-    const leavesGeo = new THREE.ConeGeometry(0.5, 1, 6);
-    const leavesMat = new THREE.MeshLambertMaterial({ color: 0x228b22 });
-    const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-    leaves.position.y = 1.2;
-    leaves.castShadow = true;
-    tree.add(leaves);
-
-    return tree;
+  function makeTextSprite(text, color, fontSize) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 256, 64);
+    ctx.font = `bold ${fontSize / 2}px "Segoe UI", system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = color;
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 6;
+    ctx.fillText(text, 128, 32);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+    return new THREE.Sprite(mat);
   }
-
-  /* ========== 创建粒子 ========== */
+  function createOrbitRings() {
+    orbitLines = [];
+    const uniqueRadii = [...new Set(planets.map((p) => p.userData.orbitRadius))];
+    uniqueRadii.forEach((r) => {
+      const curve = new THREE.EllipseCurve(0, 0, r, r, 0, Math.PI * 2, false, 0);
+      const points = curve.getPoints(80);
+      const geo = new THREE.BufferGeometry().setFromPoints(
+        points.map((p) => new THREE.Vector3(p.x, 0, p.y))
+      );
+      const mat = new THREE.LineBasicMaterial({
+        color: 0x335577,
+        transparent: true,
+        opacity: 0.25,
+      });
+      scene.add(new THREE.LineLoop(geo, mat));
+    });
+  }
+  /* ========== 粒子系统（鼠标可交互） ========== */
   function createParticles() {
-    const count = 100;
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(count * 3);
+    const count = 280;
+    const geo = new THREE.BufferGeometry();
+    particlePositions = new Float32Array(count * 3);
+    particleVelocities = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
-
-    const colorPalette = [
-      new THREE.Color(0x0084ff),
-      new THREE.Color(0x9b59ff),
-      new THREE.Color(0xff6b9d),
-      new THREE.Color(0x00c9a7),
-    ];
-
+    const palette = COLORS.map((c) => new THREE.Color(c));
     for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 50;
-      positions[i * 3 + 1] = Math.random() * 20;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
-
-      const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
-      colors[i * 3] = color.r;
-      colors[i * 3 + 1] = color.g;
-      colors[i * 3 + 2] = color.b;
+      const r = 8 + Math.random() * 35;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = (Math.random() - 0.5) * Math.PI * 0.6;
+      particlePositions[i * 3] = r * Math.cos(theta) * Math.cos(phi);
+      particlePositions[i * 3 + 1] = r * Math.sin(phi) + (Math.random() - 0.5) * 8;
+      particlePositions[i * 3 + 2] = r * Math.sin(theta) * Math.cos(phi);
+      particleVelocities[i * 3] = (Math.random() - 0.5) * 0.02;
+      particleVelocities[i * 3 + 1] = (Math.random() - 0.5) * 0.015;
+      particleVelocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
+      const col = palette[Math.floor(Math.random() * palette.length)];
+      colors[i * 3] = col.r;
+      colors[i * 3 + 1] = col.g;
+      colors[i * 3 + 2] = col.b;
     }
-
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-    const material = new THREE.PointsMaterial({
-      size: 0.3,
+    geo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const mat = new THREE.PointsMaterial({
+      size: 0.22,
       vertexColors: true,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.85,
       blending: THREE.AdditiveBlending,
+      depthWrite: false,
     });
-
-    particles = new THREE.Points(geometry, material);
+    particles = new THREE.Points(geo, mat);
     scene.add(particles);
   }
-
-  /* ========== 创建水面 ========== */
-  function createWater() {
-    const waterGeo = new THREE.PlaneGeometry(100, 100, 32, 32);
-    const waterMat = new THREE.MeshLambertMaterial({
-      color: 0x4da6ff,
+  function createStarfield() {
+    const count = 400;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 200;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 120;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 200;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({
+      size: 0.15,
+      color: 0xaaccff,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.7,
     });
-    const water = new THREE.Mesh(waterGeo, waterMat);
-    water.rotation.x = -Math.PI / 2;
-    water.position.y = -5;
-    water.receiveShadow = true;
-    scene.add(water);
+    scene.add(new THREE.Points(geo, mat));
   }
-
-  /* ========== 鼠标点击 ========== */
-  function onMouseClick(event) {
+  /* ========== 交互 ========== */
+  function onPointerMove(event) {
+    if (!renderer || !camera) return;
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
     raycaster.setFromCamera(mouse, camera);
-
-    // 检测所有岛屿的子物体
-    let clickedIsland = null;
-    for (const island of islands) {
-      const intersects = raycaster.intersectObjects(island.children, true);
-      if (intersects.length > 0) {
-        clickedIsland = island;
-        break;
+    const hits = raycaster.intersectObjects(
+      planets.map((p) => p.userData.mesh).filter(Boolean),
+      false
+    );
+    if (hoverPlanet && (!hits.length || hits[0].object.parent !== hoverPlanet)) {
+      hoverPlanet.userData.targetScale = 1;
+      if (hoverPlanet.userData.mesh) {
+        hoverPlanet.userData.mesh.material.emissiveIntensity = 0.35;
       }
+      hoverPlanet = null;
+      renderer.domElement.style.cursor = 'grab';
     }
-
-    if (clickedIsland && onIslandClick) {
-      // 点击动画
-      clickedIsland.userData.clickTime = Date.now();
-      onIslandClick(clickedIsland.userData.stage, clickedIsland.userData.index);
+    if (hits.length) {
+      const p = hits[0].object.parent;
+      if (p !== hoverPlanet) {
+        hoverPlanet = p;
+        p.userData.targetScale = 1.35;
+        if (p.userData.mesh) p.userData.mesh.material.emissiveIntensity = 0.85;
+        renderer.domElement.style.cursor = 'pointer';
+        if (controls) controls.autoRotate = false;
+      }
+    } else if (!focusedPlanet && controls) {
+      controls.autoRotate = true;
     }
   }
-
-  /* ========== 窗口大小变化 ========== */
+  function onClick(event) {
+    if (!renderer || !camera) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(
+      planets.map((p) => p.userData.mesh).filter(Boolean),
+      false
+    );
+    if (hits.length) {
+      const planet = hits[0].object.parent;
+      focusOnPlanet(planet);
+      if (onPlanetClick) {
+        onPlanetClick(planet.userData.stage, planet.userData.index);
+      }
+    } else {
+      unfocus();
+    }
+  }
+  function focusOnPlanet(planet) {
+    focusedPlanet = planet;
+    if (controls) {
+      controls.autoRotate = false;
+      controls.target.copy(planet.position);
+    }
+    planets.forEach((p) => {
+      p.userData.targetScale = p === planet ? 1.5 : 0.75;
+    });
+  }
+  function unfocus() {
+    focusedPlanet = null;
+    if (controls) {
+      controls.target.set(0, 0, 0);
+      controls.autoRotate = true;
+    }
+    planets.forEach((p) => {
+      p.userData.targetScale = 1;
+    });
+  }
   function onResize() {
     if (!renderer || !camera) return;
     const container = renderer.domElement.parentElement;
     if (!container) return;
-
-    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.aspect = container.clientWidth / Math.max(container.clientHeight, 1);
     camera.updateProjectionMatrix();
     renderer.setSize(container.clientWidth, container.clientHeight);
   }
-
   /* ========== 动画循环 ========== */
   function animate() {
     if (!isInitialized) return;
     requestAnimationFrame(animate);
-
-    const time = Date.now() * 0.001;
-
-    // 岛屿漂浮动画
-    for (const island of islands) {
-      const { baseY, floatSpeed, floatOffset, clickTime } = island.userData;
-      island.position.y = baseY + Math.sin(time * floatSpeed + floatOffset) * 0.5;
-      island.rotation.y = Math.sin(time * 0.3 + floatOffset) * 0.1;
-
-      // 点击弹跳动画
-      if (clickTime) {
-        const elapsed = (Date.now() - clickTime) / 1000;
-        if (elapsed < 0.5) {
-          island.position.y += Math.sin(elapsed * Math.PI * 4) * 0.5;
-        } else {
-          island.userData.clickTime = null;
+    const t = clock ? clock.getElapsedTime() : Date.now() * 0.001;
+    const dt = clock ? clock.getDelta() : 0.016;
+    if (core) {
+      core.rotation.y = t * 0.15;
+      for (let i = 0; i < 3; i++) {
+        const ring = core.userData['ring' + i];
+        if (ring) {
+          ring.rotation.z = t * (0.3 + i * 0.12) * (i % 2 === 0 ? 1 : -1);
         }
       }
-
-      // 发光环旋转
-      if (island.userData.ring) {
-        island.userData.ring.rotation.z = time * 0.5;
-      }
     }
-
-    // 粒子动画
-    if (particles) {
-      particles.rotation.y = time * 0.05;
-      const positions = particles.geometry.attributes.position.array;
-      for (let i = 0; i < positions.length; i += 3) {
-        positions[i + 1] += Math.sin(time + i) * 0.01;
+    planets.forEach((planet, i) => {
+      const ud = planet.userData;
+      if (!focusedPlanet) {
+        ud.orbitAngle += ud.orbitSpeed * dt;
+      }
+      const x = Math.cos(ud.orbitAngle) * ud.orbitRadius;
+      const z = Math.sin(ud.orbitAngle) * ud.orbitRadius;
+      const y = ud.baseY + Math.sin(t * 0.7 + i) * 0.35;
+      if (focusedPlanet !== planet) {
+        planet.position.x += (x - planet.position.x) * 0.08;
+        planet.position.z += (z - planet.position.z) * 0.08;
+        planet.position.y += (y - planet.position.y) * 0.08;
+      }
+      planet.rotation.y = t * 0.4;
+      ud.currentScale += (ud.targetScale - ud.currentScale) * 0.12;
+      planet.scale.setScalar(ud.currentScale);
+      if (ud.ring) ud.ring.rotation.z = t * 0.6;
+      if (energyLines[i]) {
+        const positions = energyLines[i].geometry.attributes.position;
+        positions.setXYZ(0, 0, 0, 0);
+        positions.setXYZ(1, planet.position.x, planet.position.y, planet.position.z);
+        positions.needsUpdate = true;
+        energyLines[i].material.opacity = focusedPlanet === planet ? 0.7 : 0.3;
+      }
+    });
+    if (particles && particlePositions) {
+      for (let i = 0; i < particlePositions.length; i += 3) {
+        particlePositions[i] += particleVelocities[i];
+        particlePositions[i + 1] += particleVelocities[i + 1];
+        particlePositions[i + 2] += particleVelocities[i + 2];
+        const dist = Math.sqrt(
+          particlePositions[i] ** 2 +
+            particlePositions[i + 1] ** 2 +
+            particlePositions[i + 2] ** 2
+        );
+        if (dist > 45) {
+          particlePositions[i] *= 0.3;
+          particlePositions[i + 1] *= 0.3;
+          particlePositions[i + 2] *= 0.3;
+        }
       }
       particles.geometry.attributes.position.needsUpdate = true;
+      particles.rotation.y = t * 0.02;
     }
-
+    if (focusedPlanet && controls) {
+      controls.target.lerp(focusedPlanet.position, 0.05);
+    }
     if (controls) controls.update();
     renderer.render(scene, camera);
   }
-
   /* ========== 销毁 ========== */
   function destroy() {
-    if (!isInitialized) return;
+    if (!isInitialized && !renderer) return;
     isInitialized = false;
-
     if (renderer) {
-      renderer.domElement.removeEventListener('click', onMouseClick);
+      renderer.domElement.removeEventListener('pointermove', onPointerMove);
+      renderer.domElement.removeEventListener('click', onClick);
       renderer.dispose();
       if (renderer.domElement.parentElement) {
         renderer.domElement.parentElement.removeChild(renderer.domElement);
       }
     }
-
     window.removeEventListener('resize', onResize);
-    islands = [];
+    planets = [];
+    orbitLines = [];
+    energyLines = [];
+    core = null;
+    particles = null;
     scene = null;
     camera = null;
     renderer = null;
     controls = null;
-    particles = null;
+    focusedPlanet = null;
+    hoverPlanet = null;
   }
-
-  /* ========== 暴露API ========== */
+  /* ========== 对外 API ========== */
   window.IsometricMap = {
     init: init,
     destroy: destroy,
+    focusStage: function (index) {
+      if (planets[index]) focusOnPlanet(planets[index]);
+    },
+    unfocus: unfocus,
   };
 })();
+/* 主题切换监听（注意：scene 在 IIFE 内，这里用 window 上的引用更稳） */
+window.addEventListener('zhiyu-theme-change', function (e) {
+  // 若需要主题联动，可在 init 里把 scene 挂到 window._zhiyuPlanetScene
+  const s = window._zhiyuPlanetScene;
+  if (!s) return;
+  const isDark = e.detail && e.detail.isDark;
+  if (isDark) {
+    s.background = new THREE.Color(0x0a0e1a);
+    if (s.fog) s.fog.color.set(0x0a0e1a);
+  } else {
+    s.background = new THREE.Color(0x0f172a);
+    if (s.fog) s.fog.color.set(0x0f172a);
+  }
+});

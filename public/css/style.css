@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    知遇 ZhiYu · 样式
    品牌色：知乎蓝 #0084FF + 刘看山暖橙 #FF9A3D
    ============================================================ */
@@ -261,7 +261,18 @@ body {
   border-radius: 14px;
   padding: 18px 16px;
   text-align: center;
-  transition: all 0.3s;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  position: relative;
+  transform-style: preserve-3d;
+}
+.pipe-agent:hover {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 12px 28px rgba(0, 132, 255, 0.18);
+  border-color: var(--primary);
+}
+.pipe-agent:active {
+  transform: translateY(-2px) scale(0.98);
 }
 .pipe-agent.running { border-style: solid; border-color: var(--primary); background: var(--primary-soft); }
 .pipe-agent.done { border-style: solid; border-color: #52c41a; background: #f6ffed; }
