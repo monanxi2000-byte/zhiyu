@@ -598,6 +598,8 @@ function onResult(result) {
   renderConcepts(result.studyPlan.concepts);
   renderDebates(result.comparison);
   renderSources(result.materials.sources, result.meta.live);
+  renderZhihuRecommendations(result.studyPlan.zhihuTopPicks);
+  renderRelatedTopics(result.studyPlan.relatedTopics);
   renderFlashcards(result.studyPlan.flashcards);
   renderHot(result.materials.hotTopics, result.meta.live);
   // 显示追问区
@@ -696,7 +698,7 @@ function renderTimeline(stages) {
       card.appendChild(skills);
     }
 
-    // 展开细节：避坑 / 里程碑
+    // 展开细节：避坑 / 里程碑 / 知乎推荐
     const detail = el('div', 'stage-detail');
     if (s.pitfalls && s.pitfalls.length) {
       const pit = el('div', 'detail-row pitfall');
@@ -706,12 +708,35 @@ function renderTimeline(stages) {
     if (s.milestone) {
       detail.appendChild(el('div', 'detail-row milestone', `<span class="dt">🏁 里程碑（做到这步才算过）：</span>${esc(s.milestone)}`));
     }
+    // 知乎推荐资源
+    if (s.zhihuResources && s.zhihuResources.length) {
+      const zhihuBox = el('div', 'detail-row zhihu-resources');
+      zhihuBox.innerHTML = `<span class="dt">📚 知乎推荐资源：</span>`;
+      const resList = el('div', 'zhihu-res-list');
+      s.zhihuResources.forEach((res) => {
+        const item = el('div', 'zhihu-res-item');
+        const titleLink = el('a', 'zhihu-res-title', esc(res.title));
+        if (res.url) {
+          titleLink.href = res.url;
+          titleLink.target = '_blank';
+          titleLink.rel = 'noopener noreferrer';
+        }
+        item.appendChild(titleLink);
+        if (res.author || res.likes) {
+          const meta = el('div', 'zhihu-res-meta', `${res.author ? '👤 ' + esc(res.author) : ''}${res.likes ? ' · 👍 ' + res.likes + ' 赞' : ''}`);
+          item.appendChild(meta);
+        }
+        resList.appendChild(item);
+      });
+      zhihuBox.appendChild(resList);
+      detail.appendChild(zhihuBox);
+    }
     card.appendChild(detail);
 
-    const toggle = el('button', 'stage-toggle', '展开「避坑 & 里程碑」▾');
+    const toggle = el('button', 'stage-toggle', '展开「避坑 & 里程碑 & 知乎推荐」▾');
     toggle.addEventListener('click', () => {
       card.classList.toggle('expanded');
-      toggle.textContent = card.classList.contains('expanded') ? '收起细节 ▴' : '展开「避坑 & 里程碑」▾';
+      toggle.textContent = card.classList.contains('expanded') ? '收起细节 ▴' : '展开「避坑 & 里程碑 & 知乎推荐」▾';
     });
     card.appendChild(toggle);
 
@@ -854,6 +879,69 @@ function renderSources(sources, live) {
       card.appendChild(a);
     }
     box.appendChild(card);
+  });
+}
+
+/* ---------- 知乎优质推荐 ---------- */
+function renderZhihuRecommendations(recommendations) {
+  const block = $('#zhihuRecommendBlock');
+  const list = $('#zhihuRecommendList');
+  if (!block || !list) return;
+  if (!recommendations || !recommendations.length) {
+    block.hidden = true;
+    return;
+  }
+  block.hidden = false;
+  list.innerHTML = '';
+  recommendations.forEach((rec) => {
+    const card = el('div', 'zhihu-rec-card tilt reveal');
+    const header = el('div', 'zhihu-rec-header');
+    const title = el('a', 'zhihu-rec-title', esc(rec.title));
+    if (rec.url) {
+      title.href = rec.url;
+      title.target = '_blank';
+      title.rel = 'noopener noreferrer';
+    }
+    header.appendChild(title);
+    card.appendChild(header);
+    if (rec.summary) {
+      card.appendChild(el('p', 'zhihu-rec-summary', esc(rec.summary.slice(0, 120))));
+    }
+    const meta = el('div', 'zhihu-rec-meta');
+    if (rec.author) meta.appendChild(el('span', '', `👤 ${esc(rec.author)}`));
+    if (rec.likes) meta.appendChild(el('span', '', `👍 ${rec.likes} 赞`));
+    if (rec.comments) meta.appendChild(el('span', '', `💬 ${rec.comments} 评论`));
+    card.appendChild(meta);
+    list.appendChild(card);
+  });
+}
+
+/* ---------- 相关话题推荐 ---------- */
+function renderRelatedTopics(topics) {
+  const block = $('#relatedTopicsBlock');
+  const list = $('#relatedTopicsList');
+  if (!block || !list) return;
+  if (!topics || !topics.length) {
+    block.hidden = true;
+    return;
+  }
+  block.hidden = false;
+  list.innerHTML = '';
+  topics.forEach((topic) => {
+    const item = el('div', 'related-topic-item');
+    const title = el('a', 'related-topic-title', esc(topic.title));
+    if (topic.url) {
+      title.href = topic.url;
+      title.target = '_blank';
+      title.rel = 'noopener noreferrer';
+    }
+    item.appendChild(title);
+    if (topic.heat) item.appendChild(el('span', 'related-topic-heat', `🔥 ${topic.heat}`));
+    item.addEventListener('click', () => {
+      $('#topicInput').value = topic.title;
+      startGuide();
+    });
+    list.appendChild(item);
   });
 }
 

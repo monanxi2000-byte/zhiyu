@@ -755,3 +755,117 @@ body.dark-mode .k2d-ear {
   background: rgba(255, 255, 255, 0.95) !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
 }
+
+/* ---------- 知乎推荐资源（学习路径阶段内） ---------- */
+.zhihu-resources {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(0, 132, 255, 0.2);
+}
+.zhihu-res-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.zhihu-res-item {
+  padding: 8px 12px;
+  background: rgba(0, 132, 255, 0.05);
+  border-radius: 8px;
+  border-left: 3px solid #0084ff;
+}
+.zhihu-res-title {
+  color: #0084ff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: block;
+  margin-bottom: 4px;
+}
+.zhihu-res-title:hover {
+  text-decoration: underline;
+}
+.zhihu-res-meta {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+/* ---------- 知乎优质推荐模块 ---------- */
+.zhihu-recommend-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.zhihu-rec-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(0, 132, 255, 0.15);
+  transition: all 0.3s ease;
+}
+.zhihu-rec-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 132, 255, 0.15);
+  border-color: rgba(0, 132, 255, 0.4);
+}
+.zhihu-rec-title {
+  color: #1a1a2e;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  display: block;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.zhihu-rec-title:hover {
+  color: #0084ff;
+}
+.zhihu-rec-summary {
+  color: #666;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.zhihu-rec-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+/* ---------- 相关话题推荐模块 ---------- */
+.related-topics-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.related-topic-item {
+  background: rgba(0, 132, 255, 0.08);
+  border: 1px solid rgba(0, 132, 255, 0.2);
+  border-radius: 20px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.related-topic-item:hover {
+  background: rgba(0, 132, 255, 0.15);
+  border-color: #0084ff;
+  transform: scale(1.03);
+}
+.related-topic-title {
+  color: #1a1a2e;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.related-topic-heat {
+  font-size: 0.75rem;
+  color: #ff6b6b;
+  font-weight: 600;
+}
