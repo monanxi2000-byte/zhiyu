@@ -176,6 +176,30 @@
     });
   }
 
+  /* ========== 5.1 全站背景图片鼠标视差效果 ========== */
+  function initBgParallax() {
+    const bg = document.querySelector('.site-art-bg');
+    if (!bg) return;
+
+    let targetX = 0, targetY = 0;
+    let currentX = 0, currentY = 0;
+
+    document.addEventListener('mousemove', (e) => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 2;
+      const y = (e.clientY / window.innerHeight - 0.5) * 2;
+      targetX = x * 15;
+      targetY = y * 10;
+    });
+
+    function animate() {
+      currentX += (targetX - currentX) * 0.05;
+      currentY += (targetY - currentY) * 0.05;
+      bg.style.transform = `translate(${currentX}px, ${currentY}px) scale(1.08)`;
+      requestAnimationFrame(animate);
+    }
+    animate();
+  }
+
   /* ========== 6. 3D翻转卡片（复习卡片增强） ========== */
   function initFlipCards() {
     const flipCards = document.querySelectorAll('.flip-card-3d');
@@ -361,6 +385,7 @@
     initTiltCards();
     initNavScroll();
     initMouseParallax();
+    initBgParallax();
     initFlipCards();
     initScrollProgress();
     initRippleEffect();
