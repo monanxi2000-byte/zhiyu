@@ -166,10 +166,10 @@ async function collect(topic, scenario, ctx) {
     ...webResults.slice(0, 10).map((r) => ({ kind: '全网来源', title: r.title, desc: r.summary, url: r.url, demo: false })),
   ];
 
-  // 4) 知乎优质推荐（高赞、高评论）
+  // 4) 知乎优质推荐（高赞、高评论，放宽条件确保有数据）
   const zhihuRecommendations = zhihuResults
-    .filter((r) => (r.likes || 0) > 10 || (r.comments || 0) > 5)
-    .sort((a, b) => (b.likes || 0) - (a.likes || 0))
+    .filter((r) => r.title && r.title !== '(无标题)')
+    .sort((a, b) => (b.likes || 0) - (a.likes || 0) || (b.comments || 0) - (a.comments || 0))
     .slice(0, 10);
 
   emit('collector', 'done', `资料整理完成：${sources.length} 份素材、${zhihuRecommendations.length} 条知乎优质推荐、${relatedTopics.length} 个相关话题`);
