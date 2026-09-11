@@ -179,6 +179,317 @@ body.dark-mode .glass-card {
   perspective: 1500px;
 }
 
+/* ---------- 二维刘看山CSS动画 ---------- */
+.about-mascot-2d {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.kanshan-2d {
+  position: relative;
+  width: 180px;
+  height: 220px;
+  animation: k2d-breathe 3s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+/* 身体 */
+.k2d-body {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 110px;
+  background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%);
+  border-radius: 50% 50% 45% 45%;
+  box-shadow: inset -8px -8px 20px rgba(0,0,0,0.06), inset 5px 5px 15px rgba(255,255,255,0.8);
+  z-index: 1;
+}
+
+/* 头 */
+.k2d-head {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110px;
+  height: 100px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 100%);
+  border-radius: 50%;
+  box-shadow: inset -6px -6px 15px rgba(0,0,0,0.05), inset 4px 4px 12px rgba(255,255,255,0.9);
+  z-index: 3;
+  animation: k2d-head-sway 4s ease-in-out infinite;
+}
+
+/* 耳朵 */
+.k2d-ear {
+  position: absolute;
+  top: -15px;
+  width: 0;
+  height: 0;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-bottom: 35px solid #ffffff;
+  z-index: 2;
+}
+.k2d-ear-left {
+  left: 12px;
+  transform: rotate(-15deg);
+}
+.k2d-ear-right {
+  right: 12px;
+  transform: rotate(15deg);
+}
+
+/* 耳朵内侧 */
+.k2d-ear-inner {
+  position: absolute;
+  top: -8px;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 20px solid #ffb6c1;
+  z-index: 3;
+}
+.k2d-ear-inner-left {
+  left: 19px;
+  transform: rotate(-15deg);
+}
+.k2d-ear-inner-right {
+  right: 19px;
+  transform: rotate(15deg);
+}
+
+/* 眼睛 */
+.k2d-eye {
+  position: absolute;
+  top: 42px;
+  width: 14px;
+  height: 16px;
+  background: #1a1a1a;
+  border-radius: 50%;
+  z-index: 4;
+  animation: k2d-blink 4s ease-in-out infinite;
+}
+.k2d-eye-left {
+  left: 28px;
+}
+.k2d-eye-right {
+  right: 28px;
+}
+
+/* 眼睛高光 */
+.k2d-eye-hl {
+  position: absolute;
+  top: 44px;
+  width: 5px;
+  height: 5px;
+  background: #ffffff;
+  border-radius: 50%;
+  z-index: 5;
+  animation: k2d-blink 4s ease-in-out infinite;
+}
+.k2d-eye-hl-left {
+  left: 31px;
+}
+.k2d-eye-hl-right {
+  right: 31px;
+}
+
+/* 鼻子 */
+.k2d-nose {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 15px;
+  background: #1a1a1a;
+  border-radius: 50%;
+  z-index: 4;
+}
+.k2d-nose::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  width: 6px;
+  height: 4px;
+  background: rgba(255,255,255,0.4);
+  border-radius: 50%;
+}
+
+/* 腮红 */
+.k2d-blush {
+  position: absolute;
+  top: 60px;
+  width: 16px;
+  height: 10px;
+  background: radial-gradient(ellipse, rgba(255,150,160,0.6) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: 3;
+}
+.k2d-blush-left {
+  left: 12px;
+}
+.k2d-blush-right {
+  right: 12px;
+}
+
+/* 嘴巴 */
+.k2d-mouth {
+  position: absolute;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 8px;
+  border: 2px solid #1a1a1a;
+  border-top: none;
+  border-radius: 0 0 50% 50%;
+  z-index: 4;
+}
+
+/* 围巾 */
+.k2d-scarf {
+  position: absolute;
+  top: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 22px;
+  background: linear-gradient(180deg, #0084ff 0%, #0066cc 100%);
+  border-radius: 11px;
+  z-index: 4;
+  box-shadow: 0 2px 8px rgba(0,132,255,0.3);
+}
+.k2d-scarf::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 10px;
+  width: 70px;
+  height: 6px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+}
+
+/* 围巾飘带 */
+.k2d-scarf-tail {
+  position: absolute;
+  top: 105px;
+  right: 35px;
+  width: 18px;
+  height: 45px;
+  background: linear-gradient(180deg, #0084ff 0%, #0066cc 100%);
+  border-radius: 0 0 9px 9px;
+  z-index: 2;
+  transform-origin: top center;
+  animation: k2d-scarf-wave 2s ease-in-out infinite;
+  box-shadow: 2px 2px 6px rgba(0,132,255,0.2);
+}
+
+/* 手臂 */
+.k2d-arm {
+  position: absolute;
+  top: 115px;
+  width: 22px;
+  height: 55px;
+  background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%);
+  border-radius: 11px;
+  z-index: 2;
+  box-shadow: inset -3px -3px 8px rgba(0,0,0,0.05);
+}
+.k2d-arm-left {
+  left: 25px;
+  transform: rotate(20deg);
+  transform-origin: top center;
+}
+.k2d-arm-right {
+  right: 25px;
+  transform: rotate(-20deg);
+  transform-origin: top center;
+  animation: k2d-wave 2.5s ease-in-out infinite;
+}
+
+/* 腿 */
+.k2d-leg {
+  position: absolute;
+  bottom: 15px;
+  width: 24px;
+  height: 30px;
+  background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%);
+  border-radius: 12px;
+  z-index: 1;
+}
+.k2d-leg-left {
+  left: 55px;
+}
+.k2d-leg-right {
+  right: 55px;
+}
+
+/* 脚 */
+.k2d-foot {
+  position: absolute;
+  bottom: 5px;
+  width: 30px;
+  height: 14px;
+  background: #1a1a1a;
+  border-radius: 50%;
+  z-index: 0;
+}
+.k2d-foot-left {
+  left: 50px;
+}
+.k2d-foot-right {
+  right: 50px;
+}
+
+/* 动画关键帧 */
+@keyframes k2d-breathe {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.03) translateY(-3px); }
+}
+
+@keyframes k2d-head-sway {
+  0%, 100% { transform: translateX(-50%) rotate(0deg); }
+  25% { transform: translateX(-50%) rotate(-3deg); }
+  75% { transform: translateX(-50%) rotate(3deg); }
+}
+
+@keyframes k2d-blink {
+  0%, 45%, 55%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.1); }
+}
+
+@keyframes k2d-wave {
+  0%, 100% { transform: rotate(-20deg); }
+  25% { transform: rotate(-60deg); }
+  50% { transform: rotate(-15deg); }
+  75% { transform: rotate(-55deg); }
+}
+
+@keyframes k2d-scarf-wave {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(8deg); }
+}
+
+/* 深色模式适配 */
+body.dark-mode .k2d-body,
+body.dark-mode .k2d-head,
+body.dark-mode .k2d-arm,
+body.dark-mode .k2d-leg {
+  background: linear-gradient(180deg, #e8e8e8 0%, #d0d0d0 100%);
+}
+body.dark-mode .k2d-ear {
+  border-bottom-color: #e8e8e8;
+}
+
 /* ---------- 响应式 ---------- */
 @media (max-width: 768px) {
   .tilt-card:hover {
