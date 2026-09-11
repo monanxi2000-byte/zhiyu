@@ -25,7 +25,7 @@
   pointer-events: none;
 }
 
-/* ---------- 沉浸式3D滚动背景 ---------- */
+/* ---------- 沉浸式3D滚动背景（已停用） ----------
 #immersiveBg {
   position: fixed;
   top: 0;
@@ -36,6 +36,7 @@
   pointer-events: none;
   opacity: 0.35;
 }
+*/
 
 /* ---------- 3D粒子背景 ---------- */
 #particleCanvas {
