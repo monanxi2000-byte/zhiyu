@@ -625,6 +625,29 @@ body.dark-mode .k2d-ear {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ---------- 沉浸式3D滚动背景 ---------- */
+#immersiveBg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -2;
+  pointer-events: none;
+}
+
+/* 粒子背景在沉浸式背景之上 */
+#particleCanvas {
+  z-index: -1;
+  opacity: 0.6;
+}
+
+/* 页面内容在最上层 */
+.nav, .hero, .results, .about-section, .footer, .section-inner, .meta-bar, .result-toolbar, .overall-progress, .result-block {
+  position: relative;
+  z-index: 1;
+}
+
 /* ---------- 响应式 ---------- */
 @media (max-width: 768px) {
   .tilt-card:hover {
