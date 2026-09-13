@@ -607,6 +607,8 @@ function onResult(result) {
   $('#askAnswers').innerHTML = '';
   $('#askInput').value = '';
   $('#results').hidden = false;
+  // 缓存当前结果（用于内容共创、实践任务等新功能）
+  if (typeof cacheResult === 'function') cacheResult(result);
   // 保存到历史记录
   saveToHistory(state.currentTopic, result);
   // 更新收藏按钮状态
@@ -1768,3 +1770,230 @@ window.ZhiYuMeteor = {
     draw();
   },
 };
+
+/* ============================================================
+   新功能：用户中心、复习提醒、实践任务、内容共创
+   ============================================================ */
+
+// 当前结果缓存（用于内容共创）
+let currentResult = null;
+
+// 页面加载完成后绑定新功能事件
+document.addEventListener('DOMContentLoaded', function () {
+  // 用户中心按钮
+  const userCenterBtn = document.getElementById('userCenterBtn');
+  if (userCenterBtn) {
+    userCenterBtn.addEventListener('click', function () {
+      if (window.ZhiYuUser) {
+        window.ZhiYuUser.showUserCenter();
+      }
+    });
+  }
+
+  // 复习提醒按钮
+  const reviewBtn = document.getElementById('reviewBtn');
+  if (reviewBtn) {
+    reviewBtn.addEventListener('click', showReviewModal);
+  }
+
+  // 实践任务生成按钮
+  const practiceGenerateBtn = document.getElementById('practiceGenerateBtn');
+  if (practiceGenerateBtn) {
+    practiceGenerateBtn.addEventListener('click', generatePracticeTasks);
+  }
+
+  // 内容共创按钮
+  document.querySelectorAll('.share-card-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const format = this.dataset.format;
+      if (window.ZhiYuShare && currentResult) {
+        window.ZhiYuShare.showShareModal(currentResult);
+      } else if (!currentResult) {
+        alert('请先生成学习路径');
+      }
+    });
+  });
+});
+
+/**
+ * 渲染实践任务
+ */
+function renderPracticeTasks(practice) {
+  const block = document.getElementById('practiceBlock');
+  const list = document.getElementById('practiceList');
+  if (!block || !list || !practice || !practice.tasks) return;
+
+  block.hidden = false;
+  list.innerHTML = '';
+
+  practice.tasks.forEach(function (task, idx) {
+    const difficultyClass = task.difficulty === '入门' ? 'beginner' :
+                            task.difficulty === '进阶' ? 'intermediate' : 'advanced';
+    const card = document.createElement('div');
+    card.className = 'practice-card';
+    card.innerHTML = `
+      <span class="practice-difficulty ${difficultyClass}">${task.difficulty || '入门'}</span>
+      <div class="practice-title">${task.title || `实践任务 ${idx + 1}`}</div>
+      <div class="practice-desc">${task.description || ''}</div>
+      <div class="practice-meta">
+        <span>⏱️ ${task.estimatedHours || 1} 小时</span>
+        <span>📋 ${(task.steps || []).length} 个步骤</span>
+      </div>
+      <button class="practice-toggle-btn" data-idx="${idx}">查看详情 ▼</button>
+      <div class="practice-detail" id="practiceDetail-${idx}">
+        <div class="practice-steps">
+          <strong>执行步骤：</strong>
+          <ol>${(task.steps || []).map(function (s) { return `<li>${s}</li>`; }).join('')}</ol>
+        </div>
+        ${task.resources && task.resources.length ? `
+        <div class="practice-resources">
+          <strong>参考资源：</strong>
+          <ul>${task.resources.map(function (r) {
+            return `<li><a href="${r.url}" target="_blank" rel="noopener">${r.title}</a>（${r.author || '知乎答主'}）</li>`;
+          }).join('')}</ul>
+        </div>` : ''}
+        ${task.acceptanceCriteria && task.acceptanceCriteria.length ? `
+        <div class="practice-criteria">
+          <strong>验收标准：</strong>
+          <ul>${task.acceptanceCriteria.map(function (c) { return `<li>${c}</li>`; }).join('')}</ul>
+        </div>` : ''}
+        ${task.tips ? `<div class="practice-tips"><strong>💡 小贴士：</strong>${task.tips}</div>` : ''}
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  // 绑定详情展开事件
+  list.querySelectorAll('.practice-toggle-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const idx = this.dataset.idx;
+      const detail = document.getElementById('practiceDetail-' + idx);
+      if (detail.classList.contains('show')) {
+        detail.classList.remove('show');
+        this.textContent = '查看详情 ▼';
+      } else {
+        detail.classList.add('show');
+        this.textContent = '收起详情 ▲';
+      }
+    });
+  });
+}
+
+/**
+ * 生成实践任务（用户手动触发）
+ */
+async function generatePracticeTasks() {
+  if (!currentResult) {
+    alert('请先生成学习路径');
+    return;
+  }
+
+  const btn = document.getElementById('practiceGenerateBtn');
+  if (btn) btn.textContent = '生成中...';
+
+  try {
+    const response = await fetch('/api/practice/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic: currentResult.meta?.topic,
+        result: currentResult,
+      }),
+    });
+    const data = await response.json();
+    if (data.ok && data.data) {
+      renderPracticeTasks(data.data);
+      currentResult.practice = data.data;
+    }
+  } catch (e) {
+    console.error('生成实践任务失败', e);
+    alert('生成实践任务失败，请稍后重试');
+  } finally {
+    if (btn) btn.textContent = '⚡ 生成实践任务';
+  }
+}
+
+/**
+ * 显示复习提醒弹窗
+ */
+function showReviewModal() {
+  if (!window.ZhiYuReview) return;
+
+  const stats = window.ZhiYuReview.getStats();
+  const dueCards = window.ZhiYuReview.getDueCards();
+
+  const modal = document.createElement('div');
+  modal.className = 'review-modal';
+  modal.innerHTML = `
+    <div class="review-modal-content">
+      <div class="review-modal-header">
+        <h3>🎴 复习卡片中心</h3>
+        <button class="review-close-btn">×</button>
+      </div>
+      <div class="review-modal-body">
+        <div class="review-stats">
+          <div class="review-stat-item">
+            <div class="review-stat-value">${stats.total}</div>
+            <div class="review-stat-label">总卡片</div>
+          </div>
+          <div class="review-stat-item">
+            <div class="review-stat-value">${stats.due}</div>
+            <div class="review-stat-label">待复习</div>
+          </div>
+          <div class="review-stat-item">
+            <div class="review-stat-value">${stats.reviewedToday}</div>
+            <div class="review-stat-label">今日已复习</div>
+          </div>
+        </div>
+        ${dueCards.length > 0 ? `
+        <h4 style="margin: 0 0 12px; font-size: 14px;">待复习卡片（${dueCards.length}）</h4>
+        <div class="review-due-list">
+          ${dueCards.slice(0, 10).map(function (card) {
+            return `<div class="review-card-item" data-id="${card.id}">
+              <div class="review-card-front">${card.front}</div>
+              <div class="review-card-topic">${card.topic || '未分类'}</div>
+            </div>`;
+          }).join('')}
+        </div>` : '<p style="color: #999; text-align: center; padding: 20px;">🎉 没有待复习的卡片，继续保持！</p>'}
+      </div>
+      <div class="review-modal-footer">
+        <button class="review-settings-btn" id="reviewNotifyBtn">🔔 开启通知</button>
+        <button class="review-start-btn" id="reviewStartBtn">开始复习 (${stats.due})</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // 关闭
+  modal.querySelector('.review-close-btn').addEventListener('click', function () {
+    modal.remove();
+  });
+
+  // 开启通知
+  modal.querySelector('#reviewNotifyBtn').addEventListener('click', async function () {
+    if (window.ZhiYuReview) {
+      const result = await window.ZhiYuReview.requestNotificationPermission();
+      this.textContent = result.permission === 'granted' ? '✅ 已开启' : '❌ 未开启';
+    }
+  });
+
+  // 开始复习（跳转到结果区的复习卡片）
+  modal.querySelector('#reviewStartBtn').addEventListener('click', function () {
+    modal.remove();
+    const resultsSection = document.getElementById('results');
+    if (resultsSection && !resultsSection.hidden) {
+      document.querySelector('.flashcard-area')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      alert('请先生成学习路径，然后在结果区使用复习卡片');
+    }
+  });
+}
+
+// 保存当前结果（在 renderResult 函数中调用）
+function cacheResult(result) {
+  currentResult = result;
+  // 如果有实践任务，自动渲染
+  if (result.practice) {
+    renderPracticeTasks(result.practice);
+  }
+}

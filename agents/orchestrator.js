@@ -3,9 +3,9 @@
 /**
  * 多 Agent 编排器
  *
- * 流水线：资料收集官 → 观点对照官 → 知识梳理官，三个 Agent 顺序协作，
- * 通过「任务书」（materials 对象）传递中间产物，每个 Agent 独立负责
- * 一项职责，全程通过 emit 回调向前端推送进度事件（SSE）。
+ * 流水线：资料收集官 → 观点对照官 → 知识梳理官 → 实践官 → 答疑官，
+ * 五个 Agent 顺序协作，通过「任务书」（materials 对象）传递中间产物，
+ * 每个 Agent 独立负责一项职责，全程通过 emit 回调向前端推送进度事件（SSE）。
  *
  * 运行模式：
  *  · demo —— Access Secret 未配置：使用知乎知识内容接口（真实）+ 内置场景素材
@@ -17,13 +17,14 @@ const { matchScenario } = require('../data/scenarios');
 const collector = require('./collector');
 const comparator = require('./comparator');
 const curator = require('./curator');
+const practitioner = require('./practitioner');
 
 /**
  * 运行完整流水线。
  * @param {string} topic 用户想进入的领域
- * @param {object} hooks { emit(type, agentId, stage, message) }
+ * @param {object} hooks { emit(type, agentId, stage, message), includePractice }
  */
-async function runPipeline(topic, { emit } = {}) {
+async function runPipeline(topic, { emit, includePractice = true } = {}) {
   const noop = () => {};
   const emitFn = typeof emit === 'function' ? emit : noop;
 
@@ -42,6 +43,17 @@ async function runPipeline(topic, { emit } = {}) {
   const comparison = await comparator.compare(topic, scenario, materials, ctx);
   const studyPlan = await curator.build(topic, scenario, materials, ctx);
 
+  // 实践官：生成实践任务（可选）
+  let practice = null;
+  if (includePractice) {
+    try {
+      practice = await practitioner.generatePractice(topic, scenario, materials, studyPlan, ctx);
+    } catch (e) {
+      // 实践官失败不影响主流程
+      emitFn('system', 'practitioner', 'error', `实践官任务生成失败：${e.message}`);
+    }
+  }
+
   const result = {
     meta: {
       topic,
@@ -50,13 +62,15 @@ async function runPipeline(topic, { emit } = {}) {
       live,
       elapsedMs: Date.now() - t0,
       generatedAt: new Date().toISOString(),
+      agents: ['collector', 'comparator', 'curator', ...(practice ? ['practitioner'] : [])],
     },
     materials,
     comparison,
     studyPlan,
+    ...(practice ? { practice } : {}),
   };
 
-  emitFn('system', 'boot', 'done', '三份成果已就绪，祝你与新知相遇愉快 🦊');
+  emitFn('system', 'boot', 'done', `五份成果已就绪，祝你与新知相遇愉快 🦊`);
   return result;
 }
 

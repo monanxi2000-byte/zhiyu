@@ -314,6 +314,266 @@ app.get('/api/llm/status', (req, res) => {
   });
 });
 
+/* ---------- 新功能模块 ---------- */
+const userStore = require('./lib/userStore');
+const zhihuOAuth = require('./lib/zhihuOAuth');
+const practitioner = require('./agents/practitioner');
+const qaOfficer = require('./agents/qaOfficer');
+const contentShare = require('./lib/contentShare');
+
+// 简单的会话存储（演示级，生产环境应使用 Redis/数据库）
+const sessions = new Map();
+
+/* ---------- API：知乎 OAuth 登录 ---------- */
+app.get('/api/auth/zhihu/login', (req, res) => {
+  try {
+    if (!zhihuOAuth.isConfigured()) {
+      return res.json({
+        ok: false,
+        code: 'OAUTH_NOT_CONFIGURED',
+        message: '知乎 OAuth 未配置，请设置 ZHIHU_OAUTH_APP_ID 和 ZHIHU_OAUTH_APP_SECRET',
+      });
+    }
+    const redirectUri = req.query.redirect_uri || `${req.protocol}://${req.get('host')}/api/auth/zhihu/callback`;
+    const { url, state } = zhihuOAuth.getAuthorizeUrl(redirectUri);
+    sessions.set(state, { redirectUri, createdAt: Date.now() });
+    res.json({ ok: true, authUrl: url, state });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+app.get('/api/auth/zhihu/callback', async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    if (!code || !state) {
+      return res.status(400).send('缺少 code 或 state 参数');
+    }
+    const session = sessions.get(state);
+    if (!session) {
+      return res.status(400).send('无效的 state');
+    }
+    sessions.delete(state);
+
+    const tokenData = await zhihuOAuth.exchangeCode(code, session.redirectUri);
+    const userInfo = await zhihuOAuth.getUserInfo(tokenData.access_token);
+
+    const user = userStore.getOrCreateUser(userInfo.id || userInfo.zhihu_id || `zhihu_${Date.now()}`, {
+      name: userInfo.name || userInfo.nickname || '知乎用户',
+      avatar: userInfo.avatar_url || userInfo.avatar || '',
+      zhihuId: userInfo.id || userInfo.zhihu_id,
+    });
+
+    // 生成简单的会话 token
+    const sessionToken = Buffer.from(JSON.stringify({ userId: user.id, ts: Date.now() })).toString('base64');
+
+    // 重定向回前端，带上 token
+    res.redirect(`/?auth_token=${encodeURIComponent(sessionToken)}&user=${encodeURIComponent(JSON.stringify(user.profile))}`);
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+app.get('/api/auth/status', (req, res) => {
+  const authToken = req.query.token || req.headers['x-auth-token'];
+  if (!authToken) {
+    return res.json({ ok: true, loggedIn: false });
+  }
+  try {
+    const data = JSON.parse(Buffer.from(authToken, 'base64').toString());
+    const user = userStore.getUser(data.userId);
+    if (!user) {
+      return res.json({ ok: true, loggedIn: false });
+    }
+    res.json({
+      ok: true,
+      loggedIn: true,
+      user: {
+        id: user.id,
+        profile: user.profile,
+        studyPlansCount: user.studyPlans.length,
+        reviewCardsCount: user.reviewCards.length,
+        favoritesCount: user.favorites.length,
+      },
+    });
+  } catch {
+    res.json({ ok: true, loggedIn: false });
+  }
+});
+
+/* ---------- API：用户数据 ---------- */
+app.post('/api/user/study-plans', (req, res) => {
+  try {
+    const { userId, plan } = req.body || {};
+    if (!userId || !plan) {
+      const err = new Error('缺少 userId 或 plan');
+      err.code = 'MISSING_PARAMS';
+      err.status = 400;
+      throw err;
+    }
+    const record = userStore.saveStudyPlan(userId, plan);
+    res.json({ ok: true, data: record });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+app.get('/api/user/study-plans', (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      const err = new Error('缺少 userId');
+      err.code = 'MISSING_PARAMS';
+      err.status = 400;
+      throw err;
+    }
+    res.json({ ok: true, data: userStore.getStudyPlans(userId) });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+app.post('/api/user/review-cards', (req, res) => {
+  try {
+    const { userId, cards, topic } = req.body || {};
+    if (!userId || !cards) {
+      const err = new Error('缺少 userId 或 cards');
+      err.code = 'MISSING_PARAMS';
+      err.status = 400;
+      throw err;
+    }
+    const newCards = userStore.saveReviewCards(userId, cards, topic);
+    res.json({ ok: true, data: newCards });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+app.get('/api/user/review-cards/due', (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      const err = new Error('缺少 userId');
+      err.code = 'MISSING_PARAMS';
+      err.status = 400;
+      throw err;
+    }
+    res.json({ ok: true, data: userStore.getDueCards(userId) });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+app.post('/api/user/review-cards/review', (req, res) => {
+  try {
+    const { userId, cardId, quality } = req.body || {};
+    if (!userId || !cardId || quality === undefined) {
+      const err = new Error('缺少参数');
+      err.code = 'MISSING_PARAMS';
+      err.status = 400;
+      throw err;
+    }
+    const card = userStore.updateCardReview(userId, cardId, quality);
+    res.json({ ok: true, data: card });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+app.post('/api/user/favorites', (req, res) => {
+  try {
+    const { userId, item } = req.body || {};
+    if (!userId || !item) {
+      const err = new Error('缺少 userId 或 item');
+      err.code = 'MISSING_PARAMS';
+      err.status = 400;
+      throw err;
+    }
+    const record = userStore.addFavorite(userId, item);
+    res.json({ ok: true, data: record });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+app.get('/api/user/favorites', (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      const err = new Error('缺少 userId');
+      err.code = 'MISSING_PARAMS';
+      err.status = 400;
+      throw err;
+    }
+    res.json({ ok: true, data: userStore.getFavorites(userId) });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+/* ---------- API：实践官 Agent ---------- */
+app.post('/api/practice/generate', async (req, res) => {
+  try {
+    rateLimit(req.ip, 20, 60 * 60 * 1000);
+    const { topic, result } = req.body || {};
+    if (!topic) {
+      const err = new Error('缺少 topic');
+      err.code = 'MISSING_PARAMS';
+      err.status = 400;
+      throw err;
+    }
+    const scenario = matchScenario(topic);
+    const practice = await practitioner.generatePractice(
+      topic,
+      scenario,
+      result?.materials || {},
+      result?.studyPlan || {},
+      { emit: () => {} }
+    );
+    res.json({ ok: true, data: practice });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+/* ---------- API：答疑官 Agent ---------- */
+app.post('/api/qa/answer', async (req, res) => {
+  try {
+    rateLimit(req.ip, 60, 60 * 1000);
+    const { question, knowledgeBase, topic, useZhihuSearch } = req.body || {};
+    if (!question) {
+      const err = new Error('缺少 question');
+      err.code = 'MISSING_PARAMS';
+      err.status = 400;
+      throw err;
+    }
+    const answer = await qaOfficer.answer(question, knowledgeBase || {}, {
+      useZhihuSearch: useZhihuSearch !== false,
+      topic: topic || '',
+    });
+    res.json({ ok: true, data: answer });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+/* ---------- API：内容共创 ---------- */
+app.post('/api/share/generate', (req, res) => {
+  try {
+    const { result, format } = req.body || {};
+    if (!result) {
+      const err = new Error('缺少 result');
+      err.code = 'MISSING_PARAMS';
+      err.status = 400;
+      throw err;
+    }
+    const post = contentShare.generateZhihuPost(result, format || 'guide');
+    res.json({ ok: true, data: post });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
 /* ---------- 启动 ---------- */
 app.listen(PORT, () => {
   console.log(`知遇 (ZhiYu) v${version} 已启动 → http://localhost:${PORT}`);

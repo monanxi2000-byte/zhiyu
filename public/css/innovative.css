@@ -956,3 +956,279 @@ body.dark-mode .k2d-ear {
 .meta-time {
   color: #6b7280 !important;
 }
+
+/* ---------- 导航栏图标按钮 ---------- */
+.nav-icon-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+  margin-right: 8px;
+}
+.nav-icon-btn:hover {
+  background: rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+}
+
+/* ---------- 实践任务模块 ---------- */
+.practice-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.practice-card {
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid rgba(0,132,255,0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.practice-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0084ff, #9b59ff);
+}
+.practice-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,132,255,0.18);
+}
+.practice-difficulty {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.practice-difficulty.beginner { background: #e6f7ff; color: #0084ff; }
+.practice-difficulty.intermediate { background: #fff7e6; color: #fa8c16; }
+.practice-difficulty.advanced { background: #fff1f0; color: #f5222d; }
+.practice-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+}
+.practice-desc {
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.practice-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: #999;
+  margin-bottom: 12px;
+}
+.practice-steps {
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 12px;
+}
+.practice-steps li {
+  margin-bottom: 4px;
+}
+.practice-resources {
+  font-size: 0.8rem;
+  color: #0084ff;
+}
+.practice-resources a {
+  color: #0084ff;
+  text-decoration: none;
+}
+.practice-toggle-btn {
+  width: 100%;
+  padding: 8px;
+  background: rgba(0,132,255,0.08);
+  border: 1px solid rgba(0,132,255,0.2);
+  border-radius: 8px;
+  color: #0084ff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+.practice-toggle-btn:hover {
+  background: rgba(0,132,255,0.15);
+}
+.practice-detail {
+  display: none;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+.practice-detail.show { display: block; }
+
+/* ---------- 内容共创模块 ---------- */
+.share-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.share-card {
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid rgba(0,132,255,0.12);
+  transition: all 0.3s ease;
+}
+.share-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,132,255,0.15);
+  border-color: rgba(0,132,255,0.35);
+}
+.share-card-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+.share-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+}
+.share-card-desc {
+  font-size: 0.8rem;
+  color: #888;
+  line-height: 1.5;
+  margin-bottom: 14px;
+  min-height: 40px;
+}
+.share-card-btn {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, #0084ff, #9b59ff);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.share-card-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0,132,255,0.3);
+}
+.share-card-btn:active { transform: scale(0.98); }
+
+/* ---------- 复习提醒弹窗 ---------- */
+.review-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.review-modal-content {
+  background: #fff;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.review-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.review-modal-header h3 { margin: 0; font-size: 18px; }
+.review-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+}
+.review-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.review-stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.review-stat-item {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+.review-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0084ff;
+}
+.review-stat-label {
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+}
+.review-card-item {
+  padding: 14px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.review-card-item:hover { background: #e9ecef; }
+.review-card-front {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+.review-card-topic {
+  font-size: 12px;
+  color: #999;
+}
+.review-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 10px;
+}
+.review-start-btn {
+  flex: 1;
+  padding: 12px;
+  background: linear-gradient(135deg, #0084ff, #9b59ff);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+}
+.review-settings-btn {
+  padding: 12px 16px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}

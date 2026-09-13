@@ -38,6 +38,8 @@
       <div class="nav-links">
         <a href="#how">多Agent机制</a>
         <a href="#about">关于我们</a>
+        <button class="nav-icon-btn" id="reviewBtn" title="复习卡片">🎴</button>
+        <button class="nav-icon-btn" id="userCenterBtn" title="个人中心">👤</button>
         <button class="theme-toggle" id="themeToggle" title="切换深色/浅色模式">🌙 深色</button>
         <span class="mode-badge" id="modeBadge">模式检测中…</span>
       </div>
@@ -306,6 +308,14 @@
         </div>
       </div>
 
+      <!-- 实践任务（实践官 Agent） -->
+      <div class="result-block" id="practiceBlock" hidden>
+        <h3 class="result-title">🛠️ 实践任务 <span class="result-sub">实践官为你设计的可执行小项目，边做边学</span>
+          <button class="view-toggle-btn" id="practiceGenerateBtn" title="生成实践任务">⚡ 生成实践任务</button>
+        </h3>
+        <div class="practice-list" id="practiceList"></div>
+      </div>
+
       <!-- 相关热点 -->
       <div class="result-block">
         <h3 class="result-title">🔥 相关热点 <span class="result-sub" id="hotHint"></span></h3>
@@ -333,6 +343,37 @@
           <button class="ask-suggest-btn">怎么判断自己学到位了？</button>
         </div>
         <div class="ask-answers" id="askAnswers"></div>
+      </div>
+
+      <!-- 内容共创：一键生成知乎文章 -->
+      <div class="result-block" id="shareBlock">
+        <h3 class="result-title">📝 内容共创 <span class="result-sub">把你的学习成果一键生成知乎文章，分享给更多人</span></h3>
+        <div class="share-cards">
+          <div class="share-card" data-format="guide">
+            <div class="share-card-icon">📚</div>
+            <div class="share-card-title">入门指南</div>
+            <div class="share-card-desc">整理学习路径和核心概念，生成完整入门指南</div>
+            <button class="share-card-btn" data-format="guide">生成文章</button>
+          </div>
+          <div class="share-card" data-format="experience">
+            <div class="share-card-icon">💡</div>
+            <div class="share-card-title">经验分享</div>
+            <div class="share-card-desc">基于学习路径，生成可编辑的经验分享模板</div>
+            <button class="share-card-btn" data-format="experience">生成文章</button>
+          </div>
+          <div class="share-card" data-format="debate">
+            <div class="share-card-icon">⚖️</div>
+            <div class="share-card-title">观点整理</div>
+            <div class="share-card-desc">把观点对照整理成长文，展示共识与分歧</div>
+            <button class="share-card-btn" data-format="debate">生成文章</button>
+          </div>
+          <div class="share-card" data-format="cards">
+            <div class="share-card-icon">🎴</div>
+            <div class="share-card-title">复习卡片</div>
+            <div class="share-card-desc">把复习卡片整理成合集，方便收藏和分享</div>
+            <button class="share-card-btn" data-format="cards">生成文章</button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -630,5 +671,8 @@
   <script src="/js/isometric-map.js"></script>
   <script src="/js/immersive-bg.js"></script>
   <script src="/js/innovative.js"></script>
+  <script src="/js/reviewReminder.js"></script>
+  <script src="/js/contentShare.js"></script>
+  <script src="/js/userCenter.js"></script>
 </body>
 </html>
