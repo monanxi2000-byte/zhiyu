@@ -28,7 +28,7 @@
   pointer-events: none;
 }
 
-/* ---------- 沉浸式3D滚动背景 ---------- */
+/* ---------- 沉浸式3D宇宙背景 ---------- */
 #immersiveBg {
   position: fixed;
   top: 0;
@@ -37,7 +37,7 @@
   height: 100vh;
   z-index: -2;
   pointer-events: none;
-  opacity: 0.35;
+  opacity: 0.7;
 }
 
 /* ---------- 3D粒子背景 ---------- */
