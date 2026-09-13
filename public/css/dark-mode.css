@@ -573,3 +573,28 @@ body.dark-mode .roadmap-item.done .roadmap-title { color: #4ade80 !important; }
 body.dark-mode .roadmap-item.current .roadmap-title { color: #fbbf24 !important; }
 body.dark-mode .footer { color: #94a3b8 !important; background: rgba(15,23,42,0.9) !important; border-color: #334155 !important; }
 body.dark-mode .footer a { color: #93c5fd !important; }
+
+/* ===== 深色模式小文字终极增强 ===== */
+body.dark-mode .mode-badge { color: #e2e8f0 !important; font-size: 12px !important; }
+body.dark-mode .tool-hint { color: #cbd5e1 !important; }
+body.dark-mode .fc-progress { color: #cbd5e1 !important; }
+body.dark-mode .fc-count { color: #cbd5e1 !important; }
+body.dark-mode .meta-time { color: #cbd5e1 !important; }
+body.dark-mode .pipe-status { color: #cbd5e1 !important; }
+body.dark-mode .stage-duration { color: #cbd5e1 !important; }
+body.dark-mode .hot-stats { color: #cbd5e1 !important; }
+body.dark-mode .source-stats { color: #cbd5e1 !important; }
+body.dark-mode .zhihu-rec-stats { color: #cbd5e1 !important; }
+body.dark-mode .review-stat-label { color: #cbd5e1 !important; }
+body.dark-mode .stat-label { color: #cbd5e1 !important; }
+body.dark-mode .user-id { color: #cbd5e1 !important; }
+body.dark-mode .review-card-topic { color: #cbd5e1 !important; }
+body.dark-mode .roadmap-phase { color: #cbd5e1 !important; }
+body.dark-mode .detail-row .label { color: #cbd5e1 !important; }
+body.dark-mode .stage-check { color: #cbd5e1 !important; }
+body.dark-mode .op-stage-chip { color: #cbd5e1 !important; }
+body.dark-mode .audience-label { color: #cbd5e1 !important; }
+body.dark-mode .practice-meta { color: #cbd5e1 !important; }
+body.dark-mode .share-card-desc { color: #cbd5e1 !important; }
+body.dark-mode .data-note { color: #cbd5e1 !important; }
+body.dark-mode .footer { color: #cbd5e1 !important; }
