@@ -1864,3 +1864,125 @@ body {
   .flash-actions { flex-wrap: wrap; }
   .op-stages { gap: 6px; }
 }
+
+/* ===== 浅色模式文字清晰度增强 ===== */
+body:not(.dark-mode) {
+  color: #1a1f2e !important;
+}
+body:not(.dark-mode) h1,
+body:not(.dark-mode) h2,
+body:not(.dark-mode) h3,
+body:not(.dark-mode) h4,
+body:not(.dark-mode) h5,
+body:not(.dark-mode) h6 {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+body:not(.dark-mode) a {
+  color: #0066d6 !important;
+}
+body:not(.dark-mode) .result-sub,
+body:not(.dark-mode) .section-sub,
+body:not(.dark-mode) .hero-sub,
+body:not(.dark-mode) .form-hint,
+body:not(.dark-mode) .tool-hint,
+body:not(.dark-mode) .meta-time,
+body:not(.dark-mode) .pipe-status,
+body:not(.dark-mode) .stage-duration,
+body:not(.dark-mode) .concept-desc,
+body:not(.dark-mode) .debate-summary,
+body:not(.dark-mode) .source-author,
+body:not(.dark-mode) .source-stats,
+body:not(.dark-mode) .hot-stats,
+body:not(.dark-mode) .fc-tag,
+body:not(.dark-mode) .fc-count,
+body:not(.dark-mode) .fc-progress,
+body:not(.dark-mode) .brand-en,
+body:not(.dark-mode) .mode-badge,
+body:not(.dark-mode) .agent-desc,
+body:not(.dark-mode) .practice-desc,
+body:not(.dark-mode) .practice-meta,
+body:not(.dark-mode) .share-card-desc,
+body:not(.dark-mode) .review-stat-label,
+body:not(.dark-mode) .stat-label,
+body:not(.dark-mode) .user-id,
+body:not(.dark-mode) .roadmap-phase,
+body:not(.dark-mode) .about-desc,
+body:not(.dark-mode) .data-note,
+body:not(.dark-mode) .footer,
+body:not(.dark-mode) .map-hint,
+body:not(.dark-mode) .ask-sub,
+body:not(.dark-mode) .mode-label,
+body:not(.dark-mode) .mode-desc,
+body:not(.dark-mode) .nav-links a,
+body:not(.dark-mode) .theme-toggle,
+body:not(.dark-mode) .audience-label,
+body:not(.dark-mode) .op-stage-chip,
+body:not(.dark-mode) .stage-goal,
+body:not(.dark-mode) .stage-check,
+body:not(.dark-mode) .detail-row,
+body:not(.dark-mode) .zhihu-rec-author,
+body:not(.dark-mode) .zhihu-rec-stats,
+body:not(.dark-mode) .zhihu-rec-summary,
+body:not(.dark-mode) .related-topic-desc,
+body:not(.dark-mode) .consensus-content,
+body:not(.dark-mode) .pipeline-log,
+body:not(.dark-mode) .timeplan-box,
+body:not(.dark-mode) .skill-tag,
+body:not(.dark-mode) .agent-tag,
+body:not(.dark-mode) .review-card-topic,
+body:not(.dark-mode) .plan-item,
+body:not(.dark-mode) .fav-item,
+body:not(.dark-mode) .roadmap-item p,
+body:not(.dark-mode) .ask-answer-content {
+  color: #3a4250 !important;
+}
+body:not(.dark-mode) .result-title,
+body:not(.dark-mode) .section-title,
+body:not(.dark-mode) .hero h1,
+body:not(.dark-mode) .meta-topic,
+body:not(.dark-mode) .stage-head h4,
+body:not(.dark-mode) .concept-name,
+body:not(.dark-mode) .debate-question,
+body:not(.dark-mode) .view-stance,
+body:not(.dark-mode) .consensus-title,
+body:not(.dark-mode) .source-title,
+body:not(.dark-mode) .zhihu-rec-title,
+body:not(.dark-mode) .related-topic-title,
+body:not(.dark-mode) .hot-title,
+body:not(.dark-mode) .fc-text,
+body:not(.dark-mode) .practice-title,
+body:not(.dark-mode) .share-card-title,
+body:not(.dark-mode) .review-card-front,
+body:not(.dark-mode) .user-name,
+body:not(.dark-mode) .roadmap-title,
+body:not(.dark-mode) .about-title,
+body:not(.dark-mode) .ask-title,
+body:not(.dark-mode) .ask-answer-title,
+body:not(.dark-mode) .agent-name,
+body:not(.dark-mode) .pipe-name,
+body:not(.dark-mode) .brand-name,
+body:not(.dark-mode) .op-label,
+body:not(.dark-mode) .timeplan-box strong,
+body:not(.dark-mode) .data-note strong {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+body:not(.dark-mode) input,
+body:not(.dark-mode) textarea,
+body:not(.dark-mode) select {
+  color: #0f172a !important;
+}
+body:not(.dark-mode) input::placeholder,
+body:not(.dark-mode) textarea::placeholder {
+  color: #64748b !important;
+}
+body:not(.dark-mode) label {
+  color: #3a4250 !important;
+}
+body:not(.dark-mode) small {
+  color: #5a6472 !important;
+}
+body:not(.dark-mode) strong {
+  color: #0f172a !important;
+}
