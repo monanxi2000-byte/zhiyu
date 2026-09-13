@@ -159,14 +159,15 @@
       .zhiyu-share-modal {
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.5);
+        background: rgba(0,0,0,0.6);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 10000;
       }
       .share-modal-content {
-        background: #fff;
+        background: #ffffff !important;
+        color: #0f172a !important;
         border-radius: 16px;
         width: 90%;
         max-width: 700px;
@@ -174,29 +175,44 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      }
+      .share-modal-content * {
+        color: #0f172a !important;
       }
       .share-modal-header {
         padding: 20px 24px;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid #e5e9f0;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        background: #f8fafc;
       }
       .share-modal-header h3 {
         margin: 0;
         font-size: 18px;
+        font-weight: 700;
+        color: #0f172a !important;
       }
       .share-close-btn {
         background: none;
         border: none;
         font-size: 24px;
         cursor: pointer;
-        color: #999;
+        color: #64748b !important;
+        line-height: 1;
+        padding: 4px 8px;
+        border-radius: 6px;
+      }
+      .share-close-btn:hover {
+        background: #e2e8f0;
+        color: #0f172a !important;
       }
       .share-modal-body {
         padding: 20px 24px;
         overflow-y: auto;
         flex: 1;
+        background: #ffffff;
       }
       .share-format-tabs {
         display: flex;
@@ -206,50 +222,76 @@
       }
       .share-tab {
         padding: 8px 16px;
-        border: 1px solid #ddd;
+        border: 1px solid #cbd5e1;
         border-radius: 20px;
-        background: #fff;
+        background: #ffffff;
         cursor: pointer;
         font-size: 14px;
+        font-weight: 500;
+        color: #334155 !important;
         transition: all 0.2s;
+      }
+      .share-tab:hover {
+        border-color: #0084ff;
+        color: #0084ff !important;
       }
       .share-tab.active {
         background: #0084ff;
-        color: #fff;
+        color: #ffffff !important;
         border-color: #0084ff;
+      }
+      .share-preview {
+        margin-bottom: 12px;
       }
       .share-title-input {
         width: 100%;
         padding: 12px 16px;
-        border: 1px solid #ddd;
+        border: 1px solid #cbd5e1;
         border-radius: 8px;
         font-size: 16px;
         font-weight: 600;
         margin-bottom: 12px;
         box-sizing: border-box;
+        background: #ffffff !important;
+        color: #0f172a !important;
+      }
+      .share-title-input::placeholder {
+        color: #94a3b8 !important;
       }
       .share-body-textarea {
         width: 100%;
         padding: 12px 16px;
-        border: 1px solid #ddd;
+        border: 1px solid #cbd5e1;
         border-radius: 8px;
         font-size: 14px;
         line-height: 1.6;
         resize: vertical;
         box-sizing: border-box;
         font-family: inherit;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        min-height: 200px;
+      }
+      .share-body-textarea::placeholder {
+        color: #94a3b8 !important;
       }
       .share-tags {
         margin-top: 12px;
         font-size: 13px;
-        color: #666;
+        color: #475569 !important;
+        line-height: 1.6;
+      }
+      .share-tag-label {
+        font-weight: 600;
+        color: #334155 !important;
       }
       .share-modal-footer {
         padding: 16px 24px;
-        border-top: 1px solid #eee;
+        border-top: 1px solid #e5e9f0;
         display: flex;
         gap: 12px;
         justify-content: flex-end;
+        background: #f8fafc;
       }
       .share-copy-btn, .share-publish-btn {
         padding: 10px 20px;
@@ -257,19 +299,23 @@
         border-radius: 8px;
         cursor: pointer;
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 600;
         transition: all 0.2s;
       }
       .share-copy-btn {
-        background: #f0f0f0;
-        color: #333;
+        background: #e2e8f0;
+        color: #0f172a !important;
+      }
+      .share-copy-btn:hover {
+        background: #cbd5e1;
       }
       .share-publish-btn {
         background: #0084ff;
-        color: #fff;
+        color: #ffffff !important;
       }
-      .share-copy-btn:hover { background: #e0e0e0; }
-      .share-publish-btn:hover { background: #0066cc; }
+      .share-publish-btn:hover {
+        background: #0066cc;
+      }
     `;
     document.head.appendChild(style);
     document.body.appendChild(modal);
