@@ -598,3 +598,181 @@ body.dark-mode .practice-meta { color: #cbd5e1 !important; }
 body.dark-mode .share-card-desc { color: #cbd5e1 !important; }
 body.dark-mode .data-note { color: #cbd5e1 !important; }
 body.dark-mode .footer { color: #cbd5e1 !important; }
+
+/* ===== 深色模式文字清晰度终极修复（文字阴影+更亮颜色） ===== */
+body.dark-mode {
+  color: #e2e8f0 !important;
+}
+body.dark-mode * {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6 {
+  color: #f8fafc !important;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+body.dark-mode p,
+body.dark-mode span,
+body.dark-mode div,
+body.dark-mode li,
+body.dark-mode td,
+body.dark-mode th {
+  color: inherit;
+}
+body.dark-mode a {
+  color: #93c5fd !important;
+}
+body.dark-mode a:hover {
+  color: #60a5fa !important;
+}
+body.dark-mode button {
+  color: #e2e8f0;
+}
+body.dark-mode input,
+body.dark-mode textarea,
+body.dark-mode select {
+  color: #f1f5f9 !important;
+}
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+  color: #94a3b8 !important;
+}
+body.dark-mode label {
+  color: #cbd5e1 !important;
+}
+body.dark-mode small {
+  color: #94a3b8 !important;
+}
+body.dark-mode strong {
+  color: #f1f5f9 !important;
+}
+body.dark-mode code {
+  color: #fbbf24 !important;
+  background: rgba(251,191,36,0.1) !important;
+}
+body.dark-mode pre {
+  color: #e2e8f0 !important;
+  background: rgba(15,23,42,0.9) !important;
+}
+body.dark-mode blockquote {
+  color: #cbd5e1 !important;
+  border-left-color: #4f46e5 !important;
+}
+body.dark-mode hr {
+  border-color: #334155 !important;
+}
+body.dark-mode table {
+  color: #cbd5e1 !important;
+}
+body.dark-mode th {
+  color: #f1f5f9 !important;
+  background: rgba(30,41,59,0.9) !important;
+}
+body.dark-mode td {
+  border-color: #334155 !important;
+}
+body.dark-mode .result-sub,
+body.dark-mode .section-sub,
+body.dark-mode .hero-sub,
+body.dark-mode .form-hint,
+body.dark-mode .tool-hint,
+body.dark-mode .meta-time,
+body.dark-mode .pipe-status,
+body.dark-mode .pipe-msg,
+body.dark-mode .stage-duration,
+body.dark-mode .stage-timehint,
+body.dark-mode .stage-goal,
+body.dark-mode .stage-check,
+body.dark-mode .detail-row,
+body.dark-mode .detail-row .label,
+body.dark-mode .concept-desc,
+body.dark-mode .concept-example,
+body.dark-mode .debate-summary,
+body.dark-mode .consensus-content,
+body.dark-mode .source-kind,
+body.dark-mode .source-author,
+body.dark-mode .source-stats,
+body.dark-mode .zhihu-res-meta,
+body.dark-mode .zhihu-rec-meta,
+body.dark-mode .zhihu-rec-author,
+body.dark-mode .zhihu-rec-stats,
+body.dark-mode .zhihu-rec-summary,
+body.dark-mode .related-topic-desc,
+body.dark-mode .hot-desc,
+body.dark-mode .hot-stats,
+body.dark-mode .hot-meta,
+body.dark-mode .fc-tag,
+body.dark-mode .fc-count,
+body.dark-mode .fc-progress,
+body.dark-mode .audience-label,
+body.dark-mode .op-stage-chip,
+body.dark-mode .mode-badge,
+body.dark-mode .brand-en,
+body.dark-mode .skill-tag,
+body.dark-mode .timeplan-box,
+body.dark-mode .pipeline-log,
+body.dark-mode .agent-desc,
+body.dark-mode .agent-tag,
+body.dark-mode .practice-desc,
+body.dark-mode .practice-meta,
+body.dark-mode .practice-steps,
+body.dark-mode .practice-criteria,
+body.dark-mode .practice-resources,
+body.dark-mode .share-card-desc,
+body.dark-mode .review-stat-label,
+body.dark-mode .review-card-topic,
+body.dark-mode .stat-label,
+body.dark-mode .user-id,
+body.dark-mode .plan-item,
+body.dark-mode .fav-item,
+body.dark-mode .roadmap-phase,
+body.dark-mode .roadmap-item p,
+body.dark-mode .about-desc,
+body.dark-mode .data-note,
+body.dark-mode .footer,
+body.dark-mode .map-hint,
+body.dark-mode .ask-sub,
+body.dark-mode .ask-answer-content,
+body.dark-mode .mode-label,
+body.dark-mode .mode-desc,
+body.dark-mode .mode-icon,
+body.dark-mode .nav-links a,
+body.dark-mode .theme-toggle {
+  color: #e2e8f0 !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+body.dark-mode .result-title,
+body.dark-mode .section-title,
+body.dark-mode .hero h1,
+body.dark-mode .meta-topic,
+body.dark-mode .stage-head h4,
+body.dark-mode .concept-name,
+body.dark-mode .debate-question,
+body.dark-mode .view-stance,
+body.dark-mode .consensus-title,
+body.dark-mode .source-title,
+body.dark-mode .zhihu-rec-title,
+body.dark-mode .related-topic-title,
+body.dark-mode .hot-title,
+body.dark-mode .fc-text,
+body.dark-mode .practice-title,
+body.dark-mode .share-card-title,
+body.dark-mode .review-card-front,
+body.dark-mode .user-name,
+body.dark-mode .roadmap-title,
+body.dark-mode .about-title,
+body.dark-mode .ask-title,
+body.dark-mode .ask-answer-title,
+body.dark-mode .agent-name,
+body.dark-mode .pipe-name,
+body.dark-mode .op-label,
+body.dark-mode .brand-name,
+body.dark-mode .timeplan-box strong,
+body.dark-mode .data-note strong {
+  color: #f8fafc !important;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
