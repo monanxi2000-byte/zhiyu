@@ -3,13 +3,17 @@
    3D粒子背景 / 卡片3D倾斜 / 滚动触发动画 / 玻璃拟态 / 3D按钮
    ============================================================ */
 
-/* ---------- 全站艺术背景图（莫向外求） ---------- */
+/* ---------- 全站背景（最初渐变版） ---------- */
 .site-art-bg {
   position: fixed;
   inset: 0;
   z-index: -3;
-  background: url('/assets/bg/hero-bg.jpg') center center / cover no-repeat;
-  background-color: #0a0e14;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(0, 132, 255, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(155, 89, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(0, 201, 167, 0.05) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0e1a 0%, #0f172a 50%, #0a0e1a 100%);
+  background-color: #0a0e1a;
   pointer-events: none;
   transition: transform 0.1s ease-out;
   will-change: transform;
@@ -18,12 +22,9 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(8, 12, 20, 0.55) 0%,
-    rgba(8, 12, 20, 0.35) 40%,
-    rgba(8, 12, 20, 0.55) 100%
-  );
+  background:
+    radial-gradient(circle at 15% 25%, rgba(0, 132, 255, 0.08) 0%, transparent 30%),
+    radial-gradient(circle at 85% 75%, rgba(155, 89, 255, 0.06) 0%, transparent 30%);
   pointer-events: none;
 }
 
