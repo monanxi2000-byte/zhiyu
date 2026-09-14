@@ -53,17 +53,26 @@
    * 发起知乎登录
    */
   async function loginWithZhihu() {
+    console.log('[知遇登录] 开始登录流程...');
+    
     try {
+      console.log('[知遇登录] 请求登录接口...');
       const response = await fetch('/api/auth/zhihu/login');
       const data = await response.json();
+      console.log('[知遇登录] 接口返回:', data);
+      
       if (data.ok && data.authUrl) {
+        console.log('[知遇登录] 跳转到知乎授权页面...');
         window.location.href = data.authUrl;
         return true;
       }
+      
       // OAuth 未配置，使用演示登录
+      console.log('[知遇登录] OAuth未配置，使用演示登录...');
       return demoLogin();
     } catch (e) {
-      console.error('登录失败:', e);
+      console.error('[知遇登录] 登录请求失败:', e);
+      // 网络错误也使用演示登录
       return demoLogin();
     }
   }
@@ -72,19 +81,27 @@
    * 演示登录（OAuth 未配置时使用）
    */
   function demoLogin() {
-    const user = {
-      id: `demo_${Date.now()}`,
-      profile: {
-        name: '知遇用户',
-        avatar: '',
-        zhihuId: null,
-      },
-    };
-    // 使用浏览器兼容的 base64 编码
-    const token = btoa(JSON.stringify({ userId: user.id, ts: Date.now() }));
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
-    return true;
+    try {
+      console.log('[知遇登录] 执行演示登录...');
+      const user = {
+        id: `demo_${Date.now()}`,
+        profile: {
+          name: '知遇用户',
+          avatar: '',
+          zhihuId: null,
+        },
+      };
+      // 使用浏览器兼容的 base64 编码
+      const tokenStr = JSON.stringify({ userId: user.id, ts: Date.now() });
+      const token = btoa(unescape(encodeURIComponent(tokenStr)));
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      console.log('[知遇登录] 演示登录成功，用户ID:', user.id);
+      return true;
+    } catch (e) {
+      console.error('[知遇登录] 演示登录失败:', e);
+      throw new Error('本地登录失败: ' + e.message);
+    }
   }
 
   /**
@@ -197,7 +214,7 @@
       <div class="user-modal-content" style="max-width:420px;">
         <div class="user-modal-header">
           <h3>👤 登录知遇</h3>
-          <button class="user-close-btn">×</button>
+          <button class="user-close-btn" onclick="this.closest('.zhiyu-user-modal').remove()">×</button>
         </div>
         <div class="user-modal-body" style="text-align:center; padding:40px 24px;">
           <div style="font-size:64px; margin-bottom:16px;">🐻</div>
@@ -205,7 +222,7 @@
           <p style="color:#666; margin:0 0 24px 0; font-size:14px;">
             保存学习路径 · 复习卡片提醒 · 收藏管理 · 个人知识库
           </p>
-          <button class="zhihu-login-btn" style="
+          <button id="zhihuLoginBtn" style="
             width:100%; padding:14px; border:none; border-radius:10px;
             background:linear-gradient(135deg, #0084ff, #0066d6);
             color:#fff; font-size:16px; font-weight:600; cursor:pointer;
@@ -213,6 +230,7 @@
           ">
             🔵 使用知乎账号登录
           </button>
+          <div id="loginErrorMsg" style="color:#ef4444; margin-top:12px; font-size:13px; display:none;"></div>
           <p style="color:#999; margin:16px 0 0 0; font-size:12px;">
             登录即表示同意知遇的用户协议和隐私政策
           </p>
@@ -221,40 +239,51 @@
     `;
     document.body.appendChild(modal);
 
-    // 关闭按钮
-    modal.querySelector('.user-close-btn').addEventListener('click', () => {
-      modal.remove();
-    });
-
     // 点击遮罩关闭
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
 
-    // 登录按钮
-    const loginBtn = modal.querySelector('.zhihu-login-btn');
-    loginBtn.addEventListener('click', async () => {
-      loginBtn.textContent = '登录中...';
-      loginBtn.style.opacity = '0.7';
-      loginBtn.disabled = true;
+    // 登录按钮 - 使用 onclick 确保事件绑定
+    const loginBtn = document.getElementById('zhihuLoginBtn');
+    if (loginBtn) {
+      loginBtn.onclick = async function() {
+        const btn = this;
+        const errorMsg = document.getElementById('loginErrorMsg');
+        
+        // 重置错误信息
+        if (errorMsg) {
+          errorMsg.style.display = 'none';
+          errorMsg.textContent = '';
+        }
+        
+        btn.textContent = '登录中...';
+        btn.style.opacity = '0.7';
+        btn.disabled = true;
 
-      const success = await loginWithZhihu();
-      if (success) {
-        loginBtn.textContent = '✅ 登录成功';
-        setTimeout(() => {
-          modal.remove();
-          // 刷新页面以更新登录状态
-          window.location.reload();
-        }, 800);
-      } else {
-        loginBtn.textContent = '❌ 登录失败，请重试';
-        loginBtn.style.opacity = '1';
-        loginBtn.disabled = false;
-        setTimeout(() => {
-          loginBtn.textContent = '🔵 使用知乎账号登录';
-        }, 2000);
-      }
-    });
+        try {
+          const success = await loginWithZhihu();
+          if (success) {
+            btn.textContent = '✅ 登录成功';
+            setTimeout(() => {
+              modal.remove();
+              window.location.reload();
+            }, 800);
+          } else {
+            throw new Error('登录返回失败');
+          }
+        } catch (err) {
+          console.error('登录失败:', err);
+          btn.textContent = '🔵 使用知乎账号登录';
+          btn.style.opacity = '1';
+          btn.disabled = false;
+          if (errorMsg) {
+            errorMsg.textContent = '登录失败：' + (err.message || '未知错误') + '，请重试';
+            errorMsg.style.display = 'block';
+          }
+        }
+      };
+    }
   }
 
   /**
