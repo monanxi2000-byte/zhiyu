@@ -62,7 +62,8 @@
       }
       // OAuth 未配置，使用演示登录
       return demoLogin();
-    } catch {
+    } catch (e) {
+      console.error('登录失败:', e);
       return demoLogin();
     }
   }
@@ -79,7 +80,8 @@
         zhihuId: null,
       },
     };
-    const token = Buffer.from(JSON.stringify({ userId: user.id, ts: Date.now() })).toString('base64');
+    // 使用浏览器兼容的 base64 编码
+    const token = btoa(JSON.stringify({ userId: user.id, ts: Date.now() }));
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     return true;
@@ -186,14 +188,83 @@
   }
 
   /**
+   * 显示登录弹窗
+   */
+  function showLoginModal() {
+    const modal = document.createElement('div');
+    modal.className = 'zhiyu-user-modal';
+    modal.innerHTML = `
+      <div class="user-modal-content" style="max-width:420px;">
+        <div class="user-modal-header">
+          <h3>👤 登录知遇</h3>
+          <button class="user-close-btn">×</button>
+        </div>
+        <div class="user-modal-body" style="text-align:center; padding:40px 24px;">
+          <div style="font-size:64px; margin-bottom:16px;">🐻</div>
+          <h4 style="margin:0 0 8px 0; font-size:18px;">登录后解锁更多功能</h4>
+          <p style="color:#666; margin:0 0 24px 0; font-size:14px;">
+            保存学习路径 · 复习卡片提醒 · 收藏管理 · 个人知识库
+          </p>
+          <button class="zhihu-login-btn" style="
+            width:100%; padding:14px; border:none; border-radius:10px;
+            background:linear-gradient(135deg, #0084ff, #0066d6);
+            color:#fff; font-size:16px; font-weight:600; cursor:pointer;
+            transition:all 0.2s;
+          ">
+            🔵 使用知乎账号登录
+          </button>
+          <p style="color:#999; margin:16px 0 0 0; font-size:12px;">
+            登录即表示同意知遇的用户协议和隐私政策
+          </p>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 关闭按钮
+    modal.querySelector('.user-close-btn').addEventListener('click', () => {
+      modal.remove();
+    });
+
+    // 点击遮罩关闭
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
+    // 登录按钮
+    const loginBtn = modal.querySelector('.zhihu-login-btn');
+    loginBtn.addEventListener('click', async () => {
+      loginBtn.textContent = '登录中...';
+      loginBtn.style.opacity = '0.7';
+      loginBtn.disabled = true;
+
+      const success = await loginWithZhihu();
+      if (success) {
+        loginBtn.textContent = '✅ 登录成功';
+        setTimeout(() => {
+          modal.remove();
+          // 刷新页面以更新登录状态
+          window.location.reload();
+        }, 800);
+      } else {
+        loginBtn.textContent = '❌ 登录失败，请重试';
+        loginBtn.style.opacity = '1';
+        loginBtn.disabled = false;
+        setTimeout(() => {
+          loginBtn.textContent = '🔵 使用知乎账号登录';
+        }, 2000);
+      }
+    });
+  }
+
+  /**
    * 显示用户中心弹窗
    */
-  function showUserCenter() {
+  async function showUserCenter() {
     const user = getCurrentUser();
     if (!user) {
-      if (confirm('请先登录知乎账号')) {
-        loginWithZhihu();
-      }
+      // 显示登录界面
+      showLoginModal();
       return;
     }
 
