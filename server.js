@@ -345,9 +345,11 @@ app.get('/api/auth/zhihu/login', (req, res) => {
 
 app.get('/api/auth/zhihu/callback', async (req, res) => {
   try {
-    const { code, state } = req.query;
+    // 官方文档：回调参数为 authorization_code（兼容 code）
+    const code = req.query.authorization_code || req.query.code;
+    const { state } = req.query;
     if (!code || !state) {
-      return res.status(400).send('缺少 code 或 state 参数');
+      return res.status(400).send('缺少 authorization_code 或 state 参数');
     }
     const session = sessions.get(state);
     if (!session) {
