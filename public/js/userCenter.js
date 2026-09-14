@@ -239,6 +239,57 @@
     `;
     document.body.appendChild(modal);
 
+    // 添加样式（如果还没有添加）
+    if (!document.getElementById('zhiyu-user-modal-style')) {
+      const style = document.createElement('style');
+      style.id = 'zhiyu-user-modal-style';
+      style.textContent = `
+        .zhiyu-user-modal {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10000;
+        }
+        .user-modal-content {
+          background: #fff;
+          border-radius: 16px;
+          width: 90%;
+          max-width: 600px;
+          max-height: 85vh;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .user-modal-header {
+          padding: 20px 24px;
+          border-bottom: 1px solid #eee;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .user-modal-header h3 { margin: 0; font-size: 18px; color: #1a1f2e; }
+        .user-close-btn {
+          background: none;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+          color: #999;
+          line-height: 1;
+        }
+        .user-close-btn:hover { color: #333; }
+        .user-modal-body {
+          padding: 20px 24px;
+          overflow-y: auto;
+          flex: 1;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     // 点击遮罩关闭
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
